@@ -1,0 +1,1754 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>SoilFlow Column</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Narrow:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* Layout: lab bench — controls rail | physical column (the instrument) | live readouts + charts */
+:root {
+  --bg: #e9ecea;
+  --panel: #f7f8f6;
+  --panel-2: #eef1ee;
+  --ink: #1b2320;
+  --muted: #5a6661;
+  --line: #d0d6d2;
+  --water: #1c68ad;
+  --water-soft: #d4e4f2;
+  --soil: #7d5a37;
+  --warn: #a8501c;
+  --warn-soft: #f6e3d6;
+  --good: #2d7a4c;
+  --grid: rgba(27,35,32,.08);
+  --f-ui: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-label: "Archivo Narrow", "Arial Narrow", "Archivo", sans-serif;
+  --f-num: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121715; --panel: #1a201d; --panel-2: #202824; --ink: #e3e9e5; --muted: #98a59f; --line: #2c3631;
+    --water: #5aa4e4; --water-soft: #1b3248; --soil: #c79c6c; --warn: #e48c55; --warn-soft: #3a2518; --good: #5fbf86;
+    --grid: rgba(227,233,229,.08); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121715; --panel: #1a201d; --panel-2: #202824; --ink: #e3e9e5; --muted: #98a59f; --line: #2c3631;
+  --water: #5aa4e4; --water-soft: #1b3248; --soil: #c79c6c; --warn: #e48c55; --warn-soft: #3a2518; --good: #5fbf86;
+  --grid: rgba(227,233,229,.08); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-ui); font-size: 14px; line-height: 1.45; }
+.wrap { container-type: inline-size; max-width: 1480px; margin: 0 auto; padding-inline: 16px; padding-block: 14px 28px; display: flex; flex-direction: column; gap: 14px; }
+header.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
+.brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.brand h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
+.brand h1 span { color: var(--water); }
+.brand small { font-family: var(--f-label); color: var(--muted); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
+.modes { display: flex; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 3px; }
+.modes button { font: 600 13px var(--f-ui); border: 0; background: transparent; color: var(--muted); padding: 8px 14px; border-radius: 7px; cursor: pointer; text-align: left; }
+.modes button small { display: block; font: 500 11px var(--f-label); letter-spacing: .04em; text-transform: uppercase; opacity: .8; }
+.modes button[aria-selected="true"] { background: var(--water); color: #fff; }
+.modes button:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--water); outline-offset: 2px; }
+
+.hdr-right { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.unit-toggle { display: inline-flex; align-items: center; gap: 2px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+.unit-toggle span { font: 600 11px var(--f-label); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); padding: 0 8px 0 8px; }
+.unit-toggle button { font: 500 12px var(--f-num); border: 0; background: transparent; color: var(--muted); padding: 5px 11px; border-radius: 999px; cursor: pointer; }
+.unit-toggle button[aria-pressed="true"] { background: var(--water); color: #fff; }
+.eq { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 6px 28px; align-items: baseline; }
+.eq .formula { font-family: var(--f-num); font-size: 14px; }
+.eq .note { color: var(--muted); font-size: 13px; max-width: 80ch; }
+
+.grid { display: grid; grid-template-columns: 300px 270px minmax(0, 1fr); gap: 14px; align-items: start; }
+@container (max-width: 1180px) { .grid { grid-template-columns: 300px minmax(0, 1fr); } .charts { grid-column: 1 / -1; } }
+@container (max-width: 720px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.card h2 { margin: 0 0 10px; font: 600 12px var(--f-label); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.controls { display: flex; flex-direction: column; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; }
+.field label output { font-family: var(--f-num); font-weight: 500; color: var(--water); font-size: 13px; }
+.field .hint { font-size: 12px; color: var(--muted); }
+select, input[type="number"] { font: 500 13px var(--f-ui); background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 7px 8px; width: 100%; }
+input[type="number"] { font-family: var(--f-num); }
+input[type="range"] { width: 100%; accent-color: var(--water); }
+.seg { display: flex; gap: 4px; }
+.seg button { flex: 1; font: 600 12px var(--f-ui); padding: 7px 6px; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); border-radius: 7px; cursor: pointer; }
+.seg button[aria-pressed="true"] { border-color: var(--water); color: var(--water); background: var(--water-soft); }
+.params { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; }
+.params .p { display: flex; flex-direction: column; gap: 2px; }
+.params .p span { font: 500 11px var(--f-label); color: var(--muted); letter-spacing: .03em; }
+.params input { padding: 5px 6px; font-size: 12px; }
+.sep { border: 0; border-top: 1px solid var(--line); margin: 2px 0; }
+
+.stage { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+.stage canvas { width: 100%; height: 540px; display: block; }
+.transport { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.btn { font: 600 13px var(--f-ui); border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); border-radius: 7px; padding: 7px 12px; cursor: pointer; }
+.btn.primary { background: var(--water); border-color: var(--water); color: #fff; }
+.btn:disabled { opacity: .45; cursor: default; }
+.transport select { width: auto; padding: 6px; }
+.clock { font-family: var(--f-num); font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; }
+.progress { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.progress i { display: block; height: 100%; width: 0; background: var(--water); }
+
+.charts { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat .k { font: 600 12px var(--f-label); letter-spacing: .02em; color: var(--muted); }
+.stat .v { font: 500 20px var(--f-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stat .v small { font-size: 12px; color: var(--muted); margin-left: 3px; }
+.stat.key { border-color: var(--water); }
+.stat.key .v { color: var(--water); }
+.stat.alert .v { color: var(--warn); }
+.banner { border-radius: 8px; padding: 8px 12px; font-size: 13px; background: var(--warn-soft); color: var(--ink); border: 1px solid var(--warn); }
+.chartrow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@container (max-width: 860px) { .chartrow { grid-template-columns: minmax(0,1fr); } }
+.chartbox { position: relative; height: 300px; }
+.chartbox.wide { height: 260px; }
+
+/* ---- Learn panel ---- */
+.learn-btn { font: 600 13px var(--f-ui); background: var(--ink); color: var(--bg); border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer; }
+.learn { display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
+@media (min-width: 1100px) {
+  body.learning .wrap { margin-right: 420px; max-width: none; }
+  .learn { position: fixed; top: env(safe-area-inset-top, 0px); right: 0; bottom: 0; width: 420px; overflow-y: auto; border-radius: 0; border-width: 0 0 0 1px; padding: 18px 18px 28px; z-index: 5; }
+}
+.lp-head { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.learn .lp-head h2 { margin: 0; font: 700 18px var(--f-ui); color: var(--ink); text-transform: none; letter-spacing: 0; }
+.lp-x, .lp-back { font: 600 13px var(--f-ui); background: none; border: 0; color: var(--muted); cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.lp-back { color: var(--water); padding-left: 0; }
+.lp-intro { margin: 0; color: var(--muted); }
+.lp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.lp-item { width: 100%; display: flex; gap: 12px; align-items: flex-start; text-align: left; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; color: var(--ink); font: inherit; }
+.lp-item:hover { border-color: var(--water); }
+.lp-n { font: 500 18px var(--f-num); color: var(--water); min-width: 18px; }
+.lp-body { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.lp-t { font-weight: 600; }
+.lp-meta { font: 500 12px var(--f-label); color: var(--muted); letter-spacing: .02em; }
+.lp-bar { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; margin-top: 3px; }
+.lp-bar i { display: block; height: 100%; background: var(--good); }
+.lp-reset { align-self: flex-start; font-size: 12px; }
+.learn h2.lp-title { margin: 0; font: 700 20px var(--f-ui); color: var(--ink); text-transform: none; letter-spacing: 0; text-wrap: balance; }
+.lp-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font: 600 11px var(--f-label); letter-spacing: .04em; text-transform: uppercase; color: var(--water); background: var(--water-soft); border-radius: 999px; padding: 3px 9px; align-self: flex-start; }
+.chip.warn { color: var(--warn); background: var(--warn-soft); }
+.lp-case { background: var(--water-soft); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; line-height: 1.5; }
+.lp-k { font: 600 11px var(--f-label); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.lp-obj summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+.lp-obj ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
+.lp-steps { display: flex; gap: 6px; border-top: 1px solid var(--line); padding-top: 12px; }
+.lp-steps button { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font: 500 13px var(--f-num); cursor: pointer; }
+.lp-steps button[aria-current="step"] { background: var(--water); border-color: var(--water); color: #fff; }
+.lp-st { margin: 0; font: 600 16px var(--f-ui); }
+.lp-html p { margin: 0 0 8px; line-height: 1.5; }
+.lp-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.btn.small { font-size: 12px; padding: 5px 10px; }
+.lp-rec { border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.lp-rec-h { display: flex; flex-wrap: wrap; gap: 6px; justify-content: space-between; align-items: center; }
+.lp-rec-b { display: flex; gap: 4px; flex-wrap: wrap; }
+.lp-tbl { overflow-x: auto; }
+.lp-tbl table { border-collapse: collapse; font: 12px var(--f-num); font-variant-numeric: tabular-nums; width: 100%; }
+.lp-tbl th { font: 600 11px var(--f-label); color: var(--muted); text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.lp-tbl td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.lp-tbl th:first-child, .lp-tbl td:first-child { text-align: left; }
+.lp-empty, .lp-note { margin: 0; color: var(--muted); font-size: 12px; }
+.lp-q { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--panel-2); }
+.lp-qp { margin: 0; font-weight: 600; line-height: 1.45; }
+.lp-unit { font-weight: 400; color: var(--muted); }
+.lp-opts { display: flex; flex-direction: column; gap: 4px; }
+.lp-opt { display: flex; gap: 8px; align-items: flex-start; padding: 6px 8px; border-radius: 7px; border: 1px solid transparent; cursor: pointer; line-height: 1.4; }
+.lp-opt input { margin-top: 3px; accent-color: var(--water); }
+.lp-opt.right { border-color: var(--good); }
+.lp-opt.wrong { border-color: var(--warn); }
+.lp-opt.picked { border-color: var(--water); }
+.lp-num { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.lp-num input { width: 120px; }
+.lp-num span { color: var(--muted); font-size: 13px; }
+.lp-fb { border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.5; border-left: 3px solid; background: var(--panel); }
+.lp-fb.ok { border-color: var(--good); }
+.lp-fb.no { border-color: var(--warn); }
+.lp-nav { display: flex; justify-content: space-between; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
+footer { color: var(--muted); font-size: 12px; max-width: 110ch; }
+footer b { font-weight: 600; color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+</head><body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Soil<span>Flow</span> Column</h1>
+      <small>UC Davis Advanced Irrigation Lab · 1-D infiltration &amp; drainage</small>
+    </div>
+    <div class="hdr-right">
+    <button class="learn-btn" id="learnBtn" aria-expanded="false" aria-controls="learn">Learn</button>
+    <div class="unit-toggle" role="group" aria-label="Head and suction units">
+      <span>Head units</span>
+      <button id="hu-kpa" data-hu="kpa" aria-pressed="true">kPa</button>
+      <button id="hu-m" data-hu="m" aria-pressed="false">m</button>
+    </div
+>
+    <nav class="modes" role="tablist" aria-label="Flow model">
+      <button role="tab" id="tab-darcy" data-mode="darcy" aria-selected="true">Darcy<small>saturated</small></button>
+      <button role="tab" id="tab-buck" data-mode="buck" aria-selected="false">Buckingham–Darcy<small>steady state</small></button>
+      <button role="tab" id="tab-rich" data-mode="rich" aria-selected="false">Richards<small>unsaturated · transient</small></button>
+    </nav>
+    </div>
+  </header>
+
+  <aside class="learn card" id="learn" aria-label="Learning module" hidden></aside>
+  <section class="eq" id="eq" aria-live="polite"></section>
+
+  <div class="grid">
+    <aside class="card controls" aria-label="Inputs">
+      <div class="field">
+        <label for="soil">Soil texture</label>
+        <select id="soil"></select>
+        <div class="params" id="params"></div>
+        <div class="hint">van Genuchten–Mualem parameters (Carsel &amp; Parrish 1988). Edit any value to make a custom soil.</div>
+      </div>
+      <hr class="sep">
+      <div class="field">
+        <label for="L">Column height <output id="Lout"></output></label>
+        <input type="range" id="L" min="10" max="200" step="5" value="60">
+      </div>
+      <div class="field">
+        <label for="q">Incoming flow <output id="qout"></output></label>
+        <input type="range" id="q" min="0" max="1000" step="1" value="560">
+        <div class="hint" id="qhint"></div>
+      </div>
+      <div class="field" data-modes="darcy buck">
+        <label for="Hmax">Max ponding (overflow rim) <output id="Hout"></output></label>
+        <input type="range" id="Hmax" min="0" max="100" step="1" value="10">
+      </div>
+      <div class="field" data-modes="buck rich">
+        <label>Bottom boundary</label>
+        <div class="seg" role="group" aria-label="Bottom boundary">
+          <button id="bc-free" data-bc="free" aria-pressed="true">Free drainage</button>
+          <button id="bc-wt" data-bc="wt" aria-pressed="false">Water table</button>
+        </div>
+        <div class="hint" id="bchint"></div>
+      </div>
+      <div class="field" data-modes="rich">
+        <label for="th0">Initial water content <output id="th0out"></output></label>
+        <input type="range" id="th0" min="0" max="1000" step="1" value="500">
+        <div class="hint" id="th0hint"></div>
+      </div>
+      <div class="field" data-modes="rich">
+        <label for="dur">Inflow duration <output id="durout"></output></label>
+        <input type="range" id="dur" min="0.25" max="48" step="0.25" value="6">
+      </div>
+      <div class="field" data-modes="darcy rich">
+        <label for="T">Simulated time <output id="Tout"></output></label>
+        <input type="range" id="T" min="1" max="240" step="1" value="48">
+      </div>
+    </aside>
+
+    <section class="card stage" aria-label="Soil column">
+      <h2 id="stageTitle">Column</h2>
+      <canvas id="col" width="270" height="540" role="img" aria-label="Animated soil column showing inflow, ponding, water content and drainage"></canvas>
+      <div data-modes="darcy rich" class="transport">
+        <button class="btn primary" id="play">Pause</button>
+        <button class="btn" id="reset">Restart</button>
+        <button class="btn" id="toEnd">Skip to end</button>
+        <select id="speed" aria-label="Playback speed">
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="3">3×</option>
+          <option value="10">10×</option>
+        </select>
+      </div>
+      <div data-modes="darcy rich">
+        <div class="clock"><span id="clockT">t = 0 h</span><span id="clockState"></span></div>
+        <div class="progress"><i id="prog"></i></div>
+      </div>
+    </section>
+
+    <section class="charts">
+      <div class="stats" id="stats"></div>
+      <div id="banner" class="banner" hidden></div>
+      <div class="chartrow">
+        <div class="card"><h2 id="c1t">Water content profile</h2><div class="chartbox"><canvas id="c1"></canvas></div></div>
+        <div class="card"><h2 id="c2t">Head profile</h2><div class="chartbox"><canvas id="c2"></canvas></div></div>
+      </div>
+      <div class="card"><h2 id="c3t">Drainage</h2><div class="chartbox wide"><canvas id="c3"></canvas></div></div>
+    </section>
+  </div>
+
+  <footer>
+    <b>Conventions.</b> Depth z is measured down from the soil surface; total head H = h + elevation above the outlet (datum at column base). Fluxes are positive downward, in mm/h; storage in mm of water. Pressure head, total head and suction (−h) are shown in kPa or metres of water, switchable in the header (1 m of water = 9.81 kPa); ponding depth stays in cm.
+    Soil hydraulic properties use the van Genuchten (1980) retention curve with Mualem (1976) conductivity and the Vogel et al. (2001) air-entry modification (h<sub>s</sub> = −2 cm).
+    Richards' equation is solved in mixed form with implicit finite differences and modified Picard iteration (Celia et al. 1990), with adaptive time stepping and a surface boundary that switches from flux to ponded head when the surface saturates; excess water is reported as runoff.
+  </footer>
+</div>
+
+<script>
+// ===== ENGINE START =====
+// Units: length cm, time h, flux cm/h. z = depth below surface (positive down) unless noted.
+const SOILS = {
+  sand:            { name: 'Sand',            tr: 0.045, ts: 0.43, a: 0.145, n: 2.68, Ks: 712.8 },
+  loamy_sand:      { name: 'Loamy sand',      tr: 0.057, ts: 0.41, a: 0.124, n: 2.28, Ks: 350.2 },
+  sandy_loam:      { name: 'Sandy loam',      tr: 0.065, ts: 0.41, a: 0.075, n: 1.89, Ks: 106.1 },
+  loam:            { name: 'Loam',            tr: 0.078, ts: 0.43, a: 0.036, n: 1.56, Ks: 24.96 },
+  silt:            { name: 'Silt',            tr: 0.034, ts: 0.46, a: 0.016, n: 1.37, Ks: 6.0 },
+  silt_loam:       { name: 'Silt loam',       tr: 0.067, ts: 0.45, a: 0.020, n: 1.41, Ks: 10.8 },
+  sandy_clay_loam: { name: 'Sandy clay loam', tr: 0.100, ts: 0.39, a: 0.059, n: 1.48, Ks: 31.44 },
+  clay_loam:       { name: 'Clay loam',       tr: 0.095, ts: 0.41, a: 0.019, n: 1.31, Ks: 6.24 },
+  silty_clay_loam: { name: 'Silty clay loam', tr: 0.089, ts: 0.43, a: 0.010, n: 1.23, Ks: 1.68 },
+  sandy_clay:      { name: 'Sandy clay',      tr: 0.100, ts: 0.38, a: 0.027, n: 1.23, Ks: 2.88 },
+  silty_clay:      { name: 'Silty clay',      tr: 0.070, ts: 0.36, a: 0.005, n: 1.09, Ks: 0.48 },
+  clay:            { name: 'Clay',            tr: 0.068, ts: 0.38, a: 0.008, n: 1.09, Ks: 4.8 }
+}; // Carsel & Parrish (1988); Ks in cm/day
+
+function makeVG(p) {
+  const tr = p.tr, ts = p.ts, a = p.a, n = p.n, m = 1 - 1 / n, Ks = p.Ks / 24; // Ks -> cm/h
+  const Ss = 1e-4;
+  // Vogel et al. (2001) air-entry modification, hs = -2 cm: removes the unrealistic
+  // near-saturation drop in Mualem K for n < 2 and keeps the solver stable.
+  const HS = -2;
+  const Sc = Math.pow(1 + Math.pow(a * -HS, n), -m);
+  const F = x => 1 - Math.pow(1 - Math.pow(x, 1 / m), m);
+  const Fc = F(Sc);
+  function Se(h) { return h >= HS ? 1 : Math.pow(1 + Math.pow(a * -h, n), -m) / Sc; }
+  function theta(h) { return tr + (ts - tr) * Se(h); }
+  function KSe(s) {
+    if (s >= 1) return Ks;
+    if (s <= 0) return 0;
+    const r = F(s * Sc) / Fc;
+    return Ks * Math.sqrt(s) * r * r;
+  }
+  function K(h) { return KSe(Se(h)); }
+  function C(h) {
+    if (h >= HS) return Ss;
+    const x = Math.pow(a * -h, n);
+    return (ts - tr) / Sc * a * n * m * Math.pow(a * -h, n - 1) * Math.pow(1 + x, -m - 1) + 1e-9;
+  }
+  function hOfTheta(th) {
+    let s = (th - tr) / (ts - tr);
+    if (s >= 1) return 0;
+    s = Math.max(s, 1e-6) * Sc;
+    return -Math.pow(Math.pow(s, -1 / m) - 1, 1 / n) / a;
+  }
+  // pressure head where K(h) = q (unit-gradient head), bisection on log|h|
+  function hOfK(q) {
+    if (q >= Ks) return 0;
+    let lo = -2, hi = 8; // log10 |h|
+    for (let i = 0; i < 80; i++) {
+      const mid = 0.5 * (lo + hi);
+      if (K(-Math.pow(10, mid)) > q) lo = mid; else hi = mid;
+    }
+    return -Math.pow(10, 0.5 * (lo + hi));
+  }
+  return { tr, ts, a, n, m, Ks, Se, theta, K, C, hOfTheta, hOfK };
+}
+
+// ---- 1. Darcy: saturated column, constant inflow, ponding builds to equilibrium or overflow cap
+function darcyModel(vg, L, qin, Hmax, T, nOut) {
+  const Ks = vg.Ks;
+  const Heq = L * (qin / Ks - 1); // ponding depth at which Darcy flux equals inflow
+  const supplyLimited = qin <= Ks;
+  const tau = L / Ks;
+  let tCap = Infinity;
+  if (!supplyLimited && Heq > Hmax) tCap = -tau * Math.log(1 - Hmax / Heq);
+  function H(t) {
+    if (supplyLimited) return 0;
+    return Math.min(Hmax, Heq * (1 - Math.exp(-t / tau)));
+  }
+  function q(t) { return supplyLimited ? qin : Ks * (L + H(t)) / L; }
+  const series = [];
+  let cum = 0, cumOver = 0, prevT = 0, prevQ = q(0), prevO = 0;
+  for (let i = 0; i <= nOut; i++) {
+    const t = T * i / nOut, qq = q(t), Hh = H(t);
+    const over = (!supplyLimited && Hh >= Hmax - 1e-12) ? qin - qq : 0;
+    if (i > 0) { cum += 0.5 * (qq + prevQ) * (t - prevT); cumOver += 0.5 * (over + prevO) * (t - prevT); }
+    series.push({ t, q: qq, H: Hh, over, cum, cumOver });
+    prevT = t; prevQ = qq; prevO = over;
+  }
+  const Hss = supplyLimited ? 0 : Math.min(Hmax, Heq);
+  const qss = supplyLimited ? qin : Ks * (L + Hss) / L;
+  const tSteady = supplyLimited ? 0 : (isFinite(tCap) ? tCap : 3 * tau);
+  return { series, supplyLimited, Heq, Hss, qss, tSteady, tau, H, q,
+    profileAt(t) {
+      const Hh = H(t), pts = [];
+      for (let i = 0; i <= 50; i++) {
+        const z = L * i / 50, h = Hh * (1 - z / L); // linear pressure head, h=0 at outlet
+        pts.push({ z, theta: vg.ts, h, Htot: h + (L - z) });
+      }
+      return pts;
+    } };
+}
+
+// ---- 2. Buckingham–Darcy steady flow
+function buckinghamModel(vg, L, qin, Hmax, bottom) {
+  const Ks = vg.Ks;
+  const N = 400;
+  const pts = [];
+  let q = qin, H = 0, runoff = 0, saturated = false;
+  if (qin >= Ks) {
+    saturated = true;
+    const Heq = L * (qin / Ks - 1);
+    H = Math.min(Hmax, Heq);
+    q = Ks * (L + H) / L;
+    runoff = qin - q;
+    for (let i = 0; i <= N; i++) {
+      const zu = L * i / N, h = H * zu / L; // z up from outlet
+      pts.push({ z: L - zu, theta: vg.ts, h, Htot: h + zu, K: Ks });
+    }
+  } else if (bottom === 'free') {
+    const hs = vg.hOfK(q);
+    for (let i = 0; i <= N; i++) {
+      const zu = L * i / N;
+      pts.push({ z: L - zu, theta: vg.theta(hs), h: hs, Htot: hs + zu, K: vg.K(hs) });
+    }
+  } else { // water table at column base: integrate dh/dz = q/K(h) - 1 upward (RK4)
+    let h = 0; const dz = L / N;
+    const hs = vg.hOfK(q); // h decreases upward from 0 toward hs (unit gradient), never below it
+    const f = hh => q / Math.max(vg.K(hh), 1e-30) - 1;
+    const SUB = 20;
+    for (let i = 0; i <= N; i++) {
+      const zu = i * dz;
+      pts.push({ z: L - zu, theta: vg.theta(h), h, Htot: h + zu, K: vg.K(h) });
+      const d = dz / SUB;
+      for (let s = 0; s < SUB; s++) {
+        const k1 = f(h), k2 = f(Math.max(hs, h + 0.5 * d * k1)), k3 = f(Math.max(hs, h + 0.5 * d * k2)), k4 = f(Math.max(hs, h + d * k3));
+        let nh = h + d * (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+        if (!isFinite(nh) || nh < hs) nh = hs;
+        h = Math.min(0, nh);
+      }
+    }
+  }
+  pts.sort((a, b) => a.z - b.z);
+  // storage (mm): trapezoid
+  let S = 0;
+  for (let i = 1; i < pts.length; i++) S += 0.5 * (pts[i].theta + pts[i - 1].theta) * (pts[i].z - pts[i - 1].z);
+  return { pts, q, H, runoff, saturated, storage: S * 10, hUnit: vg.hOfK(Math.min(q, Ks)) };
+}
+
+// ---- 3. Richards equation, mixed form, implicit FD + modified Picard (Celia et al. 1990)
+function thomas(a, b, c, d, n, x) {
+  const cp = new Float64Array(n), dp = new Float64Array(n);
+  cp[0] = c[0] / b[0]; dp[0] = d[0] / b[0];
+  for (let i = 1; i < n; i++) {
+    const mm = b[i] - a[i] * cp[i - 1];
+    cp[i] = c[i] / mm; dp[i] = (d[i] - a[i] * dp[i - 1]) / mm;
+  }
+  x[n - 1] = dp[n - 1];
+  for (let i = n - 2; i >= 0; i--) x[i] = dp[i] - cp[i] * x[i + 1];
+}
+
+function createRichards(o) {
+  // o: vg, L, qin (cm/h), tRain, tEnd, theta0, bottom ('free'|'wt')
+  const vg = o.vg, L = o.L;
+  const N = Math.max(50, Math.min(200, Math.round(L)));
+  const nn = N + 1, dz = L / N;
+  const z = new Float64Array(nn); for (let i = 0; i < nn; i++) z[i] = i * dz;
+  const h = new Float64Array(nn).fill(vg.hOfTheta(o.theta0));
+  if (o.bottom === 'wt') for (let i = 0; i < nn; i++) h[i] = -(L - i * dz); // hydrostatic over the water table
+  o.theta0 = vg.theta(h[0]);
+  const a = new Float64Array(nn), b = new Float64Array(nn), c = new Float64Array(nn), d = new Float64Array(nn);
+  const K = new Float64Array(nn), Cc = new Float64Array(nn), th = new Float64Array(nn), thO = new Float64Array(nn);
+  const Kp = new Float64Array(nn), hm = new Float64Array(nn), hn = new Float64Array(nn);
+  const dtMax = Math.min(0.25, o.tEnd / 300);
+  const S = {
+    t: 0, dt: 1e-3, top: 'flux', h, z, N, dz,
+    cumInf: 0, cumDrain: 0, cumRunoff: 0, qInf: 0, qDrain: 0, qSupply: 0,
+    steps: 0, failed: false, theta0: o.theta0,
+    series: [], snaps: [], nextOut: 0, nextSnap: 0,
+    dtOut: o.tEnd / 400, snapTimes: [0, 1, 2, 3, 4, 5, 6].map(k => o.tEnd * k / 6)
+  };
+  function storage(hh) {
+    let s = 0;
+    for (let i = 0; i < nn; i++) s += vg.theta(hh[i]) * dz * ((i === 0 || i === N) ? 0.5 : 1);
+    return s;
+  }
+  S.S0 = storage(h);
+  S.storage = () => storage(S.h);
+  S.thetaProfile = () => Array.from(S.h, hh => vg.theta(hh));
+
+  function attempt(dt, mode, qtop) {
+    for (let i = 0; i < nn; i++) { thO[i] = vg.theta(h[i]); hm[i] = h[i]; }
+    if (mode === 'head') hm[0] = 0;
+    let iters = 0, qbot = 0;
+    for (iters = 1; iters <= 30; iters++) {
+      for (let i = 0; i < nn; i++) { K[i] = vg.K(hm[i]); Cc[i] = vg.C(hm[i]); th[i] = vg.theta(hm[i]); }
+      for (let i = 0; i < N; i++) Kp[i] = 0.5 * (K[i] + K[i + 1]);
+      const dz2 = dz * dz;
+      for (let i = 1; i < N; i++) {
+        a[i] = -Kp[i - 1] / dz2;
+        c[i] = -Kp[i] / dz2;
+        b[i] = Cc[i] / dt + (Kp[i - 1] + Kp[i]) / dz2;
+        d[i] = Cc[i] * hm[i] / dt - (th[i] - thO[i]) / dt - (Kp[i] - Kp[i - 1]) / dz;
+      }
+      // top
+      a[0] = 0;
+      if (mode === 'flux') {
+        b[0] = 0.5 * dz * Cc[0] / dt + Kp[0] / dz;
+        c[0] = -Kp[0] / dz;
+        d[0] = qtop - Kp[0] - 0.5 * dz * (th[0] - thO[0] - Cc[0] * hm[0]) / dt;
+      } else { b[0] = 1; c[0] = 0; d[0] = 0; }
+      // bottom
+      c[N] = 0;
+      if (o.bottom === 'free') {
+        qbot = K[N];
+        a[N] = -Kp[N - 1] / dz;
+        b[N] = 0.5 * dz * Cc[N] / dt + Kp[N - 1] / dz;
+        d[N] = Kp[N - 1] - qbot - 0.5 * dz * (th[N] - thO[N] - Cc[N] * hm[N]) / dt;
+      } else { a[N] = 0; b[N] = 1; d[N] = 0; }
+      thomas(a, b, c, d, nn, hn);
+      let conv = true;
+      for (let i = 0; i < nn; i++) {
+        if (!isFinite(hn[i])) return { ok: false };
+        if (Math.abs(hn[i] - hm[i]) > 0.02 + 1e-3 * Math.abs(hm[i])) conv = false;
+        hm[i] = hn[i];
+      }
+      if (conv) break;
+    }
+    if (iters > 30) return { ok: false };
+    // fluxes
+    const th0 = vg.theta(hm[0]), thN = vg.theta(hm[N]);
+    const K0 = vg.K(hm[0]), K1 = vg.K(hm[1]), KN = vg.K(hm[N]), KN1 = vg.K(hm[N - 1]);
+    const q12 = 0.5 * (K0 + K1) * (1 - (hm[1] - hm[0]) / dz);
+    const qInf = mode === 'flux' ? qtop : q12 + 0.5 * dz * (th0 - thO[0]) / dt;
+    let qDrain;
+    if (o.bottom === 'free') qDrain = KN;
+    else qDrain = 0.5 * (KN1 + KN) * (1 - (hm[N] - hm[N - 1]) / dz) - 0.5 * dz * (thN - thO[N]) / dt;
+    return { ok: true, iters, qInf, qDrain, h: hm };
+  }
+
+  S.advance = function (tTarget, budgetMs) {
+    const t0 = (typeof performance !== 'undefined' ? performance : Date).now();
+    while (S.t < tTarget - 1e-10 && !S.failed) {
+      if (budgetMs && ((typeof performance !== 'undefined' ? performance : Date).now() - t0) > budgetMs) break;
+      let dt = Math.min(S.dt, tTarget - S.t);
+      if (S.t < o.tRain - 1e-10) dt = Math.min(dt, o.tRain - S.t);
+      const nextEvt = Math.min(S.nextOut, S.snapTimes[S.nextSnap] ?? Infinity);
+      const qtop = S.t < o.tRain - 1e-10 ? o.qin : 0;
+      let mode = S.top, r = null;
+      for (let sw = 0; sw < 3; sw++) {
+        r = attempt(dt, mode, qtop);
+        if (!r.ok) break;
+        if (mode === 'flux' && r.h[0] > 1e-6) { mode = 'head'; continue; }
+        if (mode === 'head' && r.qInf > qtop) { mode = 'flux'; continue; }
+        break;
+      }
+      if (!r.ok) {
+        S.dt = dt / 3;
+        if (S.dt < 1e-8) { S.failed = true; }
+        continue;
+      }
+      S.top = mode;
+      for (let i = 0; i < nn; i++) h[i] = r.h[i];
+      S.t += dt; S.steps++;
+      S.qInf = r.qInf; S.qDrain = r.qDrain; S.qSupply = qtop;
+      S.cumInf += r.qInf * dt;
+      S.cumDrain += r.qDrain * dt;
+      S.cumRunoff += Math.max(0, qtop - r.qInf) * dt;
+      if (r.iters <= 4) S.dt = Math.min(dtMax, dt * 1.3);
+      else if (r.iters >= 10) S.dt = Math.max(1e-7, dt * 0.6);
+      else S.dt = Math.min(dtMax, Math.max(S.dt, dt));
+      while (S.t >= S.nextOut - 1e-9) {
+        S.series.push({ t: S.t, qInf: r.qInf, qDrain: r.qDrain, qSupply: qtop, cumInf: S.cumInf, cumDrain: S.cumDrain, cumRunoff: S.cumRunoff });
+        S.nextOut += S.dtOut;
+      }
+      while (S.nextSnap < S.snapTimes.length && S.t >= S.snapTimes[S.nextSnap] - 1e-9) {
+        S.snaps.push({ t: S.snapTimes[S.nextSnap], theta: S.thetaProfile() });
+        S.nextSnap++;
+      }
+      void nextEvt;
+    }
+    return S;
+  };
+  S.massError = function () {
+    const dS = storage(h) - S.S0;
+    return dS - (S.cumInf - S.cumDrain);
+  };
+  S.wettingFront = function () {
+    const thr = o.theta0 + 0.02 * (vg.ts - vg.tr);
+    let zf = 0;
+    for (let i = 0; i < nn; i++) if (vg.theta(h[i]) > thr) zf = z[i];
+    return zf;
+  };
+  // initial snapshot
+  S.snaps.push({ t: 0, theta: S.thetaProfile() }); S.nextSnap = 1;
+  S.series.push({ t: 0, qInf: 0, qDrain: o.bottom === 'free' ? vg.K(h[N]) : 0, qSupply: o.qin, cumInf: 0, cumDrain: 0, cumRunoff: 0 });
+  S.nextOut = S.dtOut;
+  return S;
+}
+
+</script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const HU = { kpa: { f: 0.0980665, u: 'kPa', lo: 0.01, hi: 1e4 }, m: { f: 0.01, u: 'm', lo: 1e-3, hi: 1e3 } }; // per cm of water
+  let hu = 'kpa';
+  try { if (localStorage.getItem('soilflow-hu') === 'm') hu = 'm'; } catch (e) {}
+  const KF = () => HU[hu].f, KU = () => HU[hu].u;
+  const fmt = (v, d = 2) => (v == null || !isFinite(v)) ? '—' : Number(v).toFixed(d);
+  const sig = (v, s = 3) => {
+    if (v == null || !isFinite(v)) return '—';
+    if (v === 0) return '0';
+    const a = Math.abs(v);
+    if (a >= 1000) return v.toFixed(0);
+    const d = Math.max(0, s - 1 - Math.floor(Math.log10(a)));
+    return v.toFixed(Math.min(d, 4));
+  };
+
+  // ---------- state ----------
+  const st = {
+    mode: 'darcy', soil: 'loam', p: Object.assign({}, SOILS.loam), custom: false,
+    L: 60, qmm: 0, Hmax: 10, bc: 'free', th0: null, dur: 6, T: 48,
+    playing: true, speed: 1, simT: 0, fast: false
+  };
+  let vg, darcy = null, buck = null, rich = null, charts = [], lastChartDraw = 0;
+
+  // ---------- inputs ----------
+  const soilSel = $('soil');
+  for (const k in SOILS) soilSel.add(new Option(SOILS[k].name, k));
+  soilSel.add(new Option('Custom', 'custom'));
+  soilSel.value = st.soil;
+
+  const PDEF = [
+    ['tr', 'θr (m³/m³)', 0.001], ['ts', 'θs (m³/m³)', 0.001], ['a', 'α (1/cm)', 0.001],
+    ['n', 'n (–)', 0.01], ['Ks', 'Ks (cm/d)', 0.01]
+  ];
+  function renderParams() {
+    $('params').innerHTML = PDEF.map(([k, lab, step]) =>
+      `<label class="p" for="p_${k}"><span>${lab}</span><input type="number" id="p_${k}" step="${step}" value="${st.p[k]}"></label>`
+    ).join('') + `<div class="p"><span>Ks (mm/h)</span><input type="number" id="p_ksmm" value="${sig(st.p.Ks / 2.4, 3)}" disabled></div>`;
+    PDEF.forEach(([k]) => $('p_' + k).addEventListener('change', e => {
+      const v = parseFloat(e.target.value);
+      if (!isFinite(v) || v <= 0 || (k === 'n' && v <= 1.01) || (k === 'ts' && v <= st.p.tr) || (k === 'tr' && v >= st.p.ts)) {
+        e.target.value = st.p[k]; return;
+      }
+      st.p[k] = v; st.custom = true; soilSel.value = 'custom';
+      $('p_ksmm').value = sig(st.p.Ks / 2.4, 3);
+      st.th0 = null; rebuild();
+    }));
+  }
+
+  const qFromSlider = s => Math.pow(10, -1 + 3.5 * s / 1000);
+  const sliderFromQ = q => Math.round((Math.log10(q) + 1) / 3.5 * 1000);
+  st.qmm = qFromSlider(+$('q').value);
+  $('q').value = sliderFromQ(20); st.qmm = qFromSlider(+$('q').value);
+
+  soilSel.addEventListener('change', () => {
+    if (soilSel.value === 'custom') { st.custom = true; return; }
+    st.soil = soilSel.value; st.p = Object.assign({}, SOILS[st.soil]); st.custom = false; st.th0 = null;
+    renderParams(); rebuild();
+  });
+  $('L').addEventListener('input', () => { st.L = +$('L').value; rebuild(); });
+  $('q').addEventListener('input', () => { st.qmm = qFromSlider(+$('q').value); rebuild(); });
+  $('Hmax').addEventListener('input', () => { st.Hmax = +$('Hmax').value; rebuild(); });
+  $('dur').addEventListener('input', () => { st.dur = +$('dur').value; rebuild(); });
+  $('T').addEventListener('input', () => { st.T = +$('T').value; rebuild(); });
+  $('th0').addEventListener('input', () => { st.th0 = th0FromSlider(+$('th0').value); rebuild(); });
+  document.querySelectorAll('[data-bc]').forEach(b => b.addEventListener('click', () => {
+    st.bc = b.dataset.bc;
+    document.querySelectorAll('[data-bc]').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+    rebuild();
+  }));
+  document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => {
+    st.mode = b.dataset.mode;
+    document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-selected', x === b ? 'true' : 'false'));
+    rebuild();
+  }));
+  $('play').addEventListener('click', () => {
+    if (isDone()) { restart(); return; }
+    st.playing = !st.playing; syncTransport();
+  });
+  $('reset').addEventListener('click', restart);
+  $('toEnd').addEventListener('click', () => { st.fast = true; st.playing = true; syncTransport(); });
+  $('speed').addEventListener('change', () => { st.speed = +$('speed').value; });
+
+  function th0Range() { return [vg.tr + 0.02 * (vg.ts - vg.tr), vg.ts - 0.002]; }
+  function th0FromSlider(s) { const [lo, hi] = th0Range(); return lo + (hi - lo) * s / 1000; }
+  function sliderFromTh0(t) { const [lo, hi] = th0Range(); return Math.round(1000 * (t - lo) / (hi - lo)); }
+
+  function isDone() {
+    if (st.mode === 'darcy') return st.simT >= st.T - 1e-9;
+    if (st.mode === 'rich') return rich && (rich.t >= st.T - 1e-9 || rich.failed);
+    return false;
+  }
+  function syncTransport() {
+    $('play').textContent = isDone() ? 'Replay' : (st.playing ? 'Pause' : 'Play');
+    $('toEnd').disabled = isDone();
+  }
+
+  // ---------- build models ----------
+  function rebuild() {
+    vg = makeVG(st.p);
+    if (st.h0req != null) { st.th0 = vg.theta(st.h0req); st.h0req = null; }
+    if (st.th0 == null || st.th0 < vg.tr || st.th0 > vg.ts) st.th0 = vg.theta(-300);
+    $('th0').value = sliderFromTh0(st.th0);
+    // labels
+    $('Lout').textContent = st.L + ' cm';
+    $('qout').textContent = sig(st.qmm, 3) + ' mm/h';
+    const ksmm = vg.Ks * 10;
+    $('qhint').innerHTML = `K<sub>s</sub> of this soil = ${sig(ksmm, 3)} mm/h · inflow is ${sig(st.qmm / ksmm, 2)}× K<sub>s</sub>`;
+    $('Hout').textContent = st.Hmax + ' cm';
+    $('durout').textContent = st.dur + ' h';
+    $('Tout').textContent = st.T + ' h';
+    $('th0out').textContent = fmt(st.th0, 3) + ' m³/m³';
+    const h0 = vg.hOfTheta(st.th0);
+    $('th0hint').textContent = st.bc === 'wt' && st.mode === 'rich'
+      ? 'With a water table the column starts at hydrostatic equilibrium, so this setting is not used.'
+      : `Initial suction ${sig(-h0 * KF(), 3)} ${KU()} (h₀ = ${sig(h0, 3)} cm) · relative saturation ${fmt(vg.Se(h0) * 100, 0)}%`;
+    $('th0').disabled = st.bc === 'wt' && st.mode === 'rich';
+    $('bchint').textContent = st.bc === 'free'
+      ? 'Unit hydraulic gradient at the base (deep, freely draining profile).'
+      : 'Constant head h = 0 at the base (saturated outlet / shallow water table).';
+    document.querySelectorAll('[data-modes]').forEach(el => { el.hidden = !el.dataset.modes.split(' ').includes(st.mode); });
+    $('dur').max = Math.max(48, st.T);
+    if (st.dur > st.T) { st.dur = st.T; $('dur').value = st.T; $('durout').textContent = st.T + ' h'; }
+
+    const q = st.qmm / 10; // cm/h
+    darcy = buck = rich = null;
+    if (st.mode === 'darcy') darcy = darcyModel(vg, st.L, q, st.Hmax, st.T, 400);
+    if (st.mode === 'buck') buck = buckinghamModel(vg, st.L, q, st.Hmax, st.bc);
+    if (st.mode === 'rich') rich = createRichards({ vg, L: st.L, qin: q, tRain: st.dur, tEnd: st.T, theta0: st.th0, bottom: st.bc });
+    st.simT = 0; st.fast = false; st.playing = true;
+    renderEq();
+    buildCharts();
+    syncTransport();
+    refresh(true);
+  }
+  function restart() { rebuild(); }
+
+  // ---------- equation strip ----------
+  function renderEq() {
+    const E = {
+      darcy: `<span class="formula">q = K<sub>s</sub> · ΔH / L = K<sub>s</sub> (L + H<sub>p</sub>) / L</span>
+              <span class="formula">dH<sub>p</sub>/dt = q<sub>in</sub> − q</span>
+              <span class="note">The column is saturated (θ = θ<sub>s</sub>, K = K<sub>s</sub>) and drains freely at the base (h = 0). When inflow exceeds K<sub>s</sub>, water ponds on the surface and the extra head H<sub>p</sub> raises the gradient until drainage matches inflow, or until the pond reaches the rim and overflows.</span>`,
+      buck: `<span class="formula">q = −K(h) · ∂H/∂z = K(h) (∂h/∂z<sub>↑</sub> + 1)</span>
+             <span class="note">Steady state: the flux is the same at every depth and equals the inflow. With free drainage the gradient is unity, so the whole column sits at the head where K(h) = q. Above a water table, h is found by integrating dh/dz = q/K(h) − 1 upward from h = 0.</span>`,
+      rich: `<span class="formula">∂θ/∂t = ∂/∂z [ K(h) (∂h/∂z − 1) ]</span>
+             <span class="note">Transient unsaturated flow (z positive downward). A wetting front advances from the surface during inflow, then redistributes and drains after inflow stops. When the surface saturates, the boundary switches to ponded head and excess water runs off.</span>`
+    };
+    $('eq').innerHTML = E[st.mode];
+    $('stageTitle').textContent = { darcy: 'Saturated permeameter', buck: 'Steady-state column', rich: 'Transient column' }[st.mode];
+  }
+
+  // ---------- charts ----------
+  const nowLine = {
+    id: 'nowLine',
+    afterDatasetsDraw(c) {
+      if (c.$now == null) return;
+      const x = c.scales.x.getPixelForValue(c.$now), a = c.chartArea;
+      if (x < a.left || x > a.right) return;
+      const g = c.ctx; g.save(); g.strokeStyle = css('--muted'); g.setLineDash([3, 3]); g.lineWidth = 1;
+      g.beginPath(); g.moveTo(x, a.top); g.lineTo(x, a.bottom); g.stroke(); g.restore();
+    }
+  };
+  function baseOpts(xTitle, yTitle) {
+    const ink = css('--muted'), grid = css('--grid');
+    const ax = t => ({ title: { display: true, text: t, color: ink, font: { family: 'Archivo', size: 12 } },
+      ticks: { color: ink, font: { family: 'JetBrains Mono', size: 11 }, maxTicksLimit: 7 }, grid: { color: grid }, border: { color: grid } });
+    return {
+      animation: false, responsive: true, maintainAspectRatio: false, parsing: false, normalized: true,
+      interaction: { mode: 'nearest', intersect: false },
+      plugins: { legend: { labels: { color: ink, boxWidth: 14, boxHeight: 2, font: { family: 'Archivo', size: 12 } } },
+        tooltip: { callbacks: {} } },
+      scales: { x: Object.assign({ type: 'linear' }, ax(xTitle)), y: Object.assign({ type: 'linear' }, ax(yTitle)) }
+    };
+  }
+  function line(label, color, data, extra) {
+    return Object.assign({ type: 'line', label, data, borderColor: color, backgroundColor: color, borderWidth: 2, pointRadius: 0, tension: 0 }, extra || {});
+  }
+  function buildCharts() {
+    charts.forEach(c => c.destroy()); charts = [];
+    const W = css('--water'), S = css('--soil'), M = css('--muted'), G = css('--good'), R = css('--warn');
+    const L = st.L;
+    // c1: theta profile
+    const o1 = baseOpts('Volumetric water content θ (m³/m³)', 'Depth (cm)');
+    o1.scales.y.reverse = true; o1.scales.y.min = 0; o1.scales.y.max = L;
+    o1.scales.x.min = 0; o1.scales.x.max = Math.ceil((vg.ts + 0.03) * 20) / 20;
+    o1.plugins.tooltip.callbacks.label = c => `${c.dataset.label}: θ = ${fmt(c.parsed.x, 3)} at ${fmt(c.parsed.y, 1)} cm`;
+    const refs = [
+      line('θs', M, [{ x: vg.ts, y: 0 }, { x: vg.ts, y: L }], { borderDash: [4, 4], borderWidth: 1 }),
+      line('θr', M, [{ x: vg.tr, y: 0 }, { x: vg.tr, y: L }], { borderDash: [1, 3], borderWidth: 1 })
+    ];
+    charts.push(new Chart($('c1'), { type: 'line', data: { datasets: refs }, options: o1 }));
+    // c2: heads
+    const o2 = baseOpts(`Head (${KU()})`, 'Depth (cm)');
+    o2.scales.y.reverse = true; o2.scales.y.min = 0; o2.scales.y.max = L;
+    o2.plugins.tooltip.callbacks.label = c => `${c.dataset.label}: ${sig(c.parsed.x, 3)} ${KU()} (${sig(c.parsed.x / KF(), 3)} cm) at ${fmt(c.parsed.y, 1)} cm`;
+    charts.push(new Chart($('c2'), { type: 'line', data: { datasets: [
+      line('Pressure head h', W, []),
+      line('Total head H = h + elevation', S, [], { borderDash: [6, 4] })
+    ] }, options: o2 }));
+    // c3
+    let o3, ds3;
+    if (st.mode === 'buck') {
+      o3 = baseOpts(`Suction −h (${KU()})`, 'K (mm/h)');
+      o3.scales.x.type = 'logarithmic'; o3.scales.y.type = 'logarithmic';
+      o3.scales.x.min = HU[hu].lo; o3.scales.x.max = HU[hu].hi;
+      o3.scales.x.ticks.callback = v => { const l = Math.log10(v); return Math.abs(l - Math.round(l)) < 1e-6 ? (v >= 1000 ? (v / 1000) + 'k' : String(+v.toPrecision(1))) : ''; };
+      o3.scales.y.ticks.callback = v => { const l = Math.log10(v); return Math.abs(l - Math.round(l)) < 1e-6 ? '1e' + Math.round(l) : ''; };
+      const curve = [];
+      for (let i = 0; i <= 200; i++) { const hh = Math.pow(10, -1 + 6 * i / 200); const k = vg.K(-hh) * 10; if (k > 1e-8) curve.push({ x: hh * KF(), y: k }); }
+      o3.scales.y.min = Math.max(1e-8, curve[curve.length - 1].y);
+      o3.plugins.tooltip.callbacks.label = c => `${c.dataset.label}: suction ${sig(c.parsed.x, 3)} ${KU()} (${sig(c.parsed.x / KF(), 3)} cm), K = ${sig(c.parsed.y, 3)} mm/h`;
+      ds3 = [line('K(h)', S, curve), line('Operating range', W, [], { borderWidth: 6 }),
+        { type: 'scatter', label: 'Steady flux q', data: [], borderColor: W, backgroundColor: W, pointRadius: 5 }];
+      const yTop = curve[0].y * 3, yBot = o3.scales.y.min;
+      const fc = 33 / 0.0980665 * KF(), wp = 1500 / 0.0980665 * KF();
+      ds3.push(line(hu === 'kpa' ? 'Field capacity (33 kPa)' : 'Field capacity (3.4 m)', M, [{ x: fc, y: yBot }, { x: fc, y: yTop }], { borderDash: [4, 4], borderWidth: 1 }),
+        line(hu === 'kpa' ? 'Wilting point (1500 kPa)' : 'Wilting point (153 m)', R, [{ x: wp, y: yBot }, { x: wp, y: yTop }], { borderDash: [4, 4], borderWidth: 1 }));
+      $('c3t').textContent = 'Hydraulic conductivity curve';
+    } else {
+      o3 = baseOpts('Time (h)', 'Flux (mm/h)');
+      o3.scales.x.min = 0; o3.scales.x.max = st.T;
+      o3.scales.y.min = st.mode === 'rich' && st.bc === 'wt' ? undefined : 0;
+      o3.scales.y1 = JSON.parse(JSON.stringify(o3.scales.y)); o3.scales.y1.position = 'right'; o3.scales.y1.min = 0;
+      o3.scales.y1.grid = { drawOnChartArea: false };
+      o3.scales.y1.title.text = st.mode === 'darcy' ? 'Ponding depth (cm)' : 'Cumulative (mm)';
+      o3.plugins.tooltip.callbacks.label = c => `${c.dataset.label}: ${sig(c.parsed.y, 3)} at t = ${fmt(c.parsed.x, 2)} h`;
+      if (st.mode === 'darcy') {
+        ds3 = [line('Drainage q', W, []), line('Inflow', M, [], { borderDash: [5, 4], borderWidth: 1.5 }),
+          line('Overflow runoff', R, []), line('Ponding depth', S, [], { yAxisID: 'y1', borderDash: [6, 3] })];
+        $('c3t').textContent = 'Drainage and ponding over time';
+      } else {
+        ds3 = [line('Drainage', W, []), line('Infiltration', G, []), line('Inflow supply', M, [], { borderDash: [5, 4], borderWidth: 1.5, stepped: true }),
+          line('Σ drained', W, [], { yAxisID: 'y1', borderDash: [2, 3], borderWidth: 1.5 }),
+          line('Σ runoff', R, [], { yAxisID: 'y1', borderDash: [2, 3], borderWidth: 1.5 })];
+        $('c3t').textContent = 'Infiltration and drainage over time';
+      }
+    }
+    charts.push(new Chart($('c3'), { type: 'line', data: { datasets: ds3 }, options: o3, plugins: [nowLine] }));
+    $('c1t').textContent = st.mode === 'rich' ? 'Water content profile (snapshots + now)' : 'Water content profile';
+  }
+
+  function updateCharts() {
+    const [c1, c2, c3] = charts;
+    const W = css('--water'), M = css('--muted');
+    const refs = c1.data.datasets.slice(0, 2);
+    let prof = [], heads = null;
+    if (st.mode === 'darcy') {
+      const p = darcy.profileAt(st.simT);
+      prof = [line('θ (saturated)', W, p.map(r => ({ x: r.theta, y: r.z })), { borderWidth: 3 })];
+      heads = p;
+      c3.$now = st.simT;
+      const ser = darcy.series.filter(r => r.t <= st.simT + 1e-9);
+      c3.data.datasets[0].data = ser.map(r => ({ x: r.t, y: r.q * 10 }));
+      c3.data.datasets[1].data = [{ x: 0, y: st.qmm }, { x: st.T, y: st.qmm }];
+      c3.data.datasets[2].data = ser.map(r => ({ x: r.t, y: r.over * 10 }));
+      c3.data.datasets[3].data = ser.map(r => ({ x: r.t, y: r.H }));
+    } else if (st.mode === 'buck') {
+      prof = [line('θ steady', W, buck.pts.map(r => ({ x: r.theta, y: r.z })), { borderWidth: 3 })];
+      heads = buck.pts;
+      const hs = buck.pts.map(r => -r.h).filter(v => v > 0.1);
+      c3.data.datasets[1].data = hs.length ? [{ x: Math.max(0.1, Math.min(...hs)), y: vg.K(-Math.max(0.1, Math.min(...hs))) * 10 }, { x: Math.max(...hs), y: vg.K(-Math.max(...hs)) * 10 }]
+        .map(p => p).sort((a, b) => a.x - b.x) : [];
+      if (hs.length) {
+        const lo = Math.max(0.1, Math.min(...hs)), hi = Math.max(...hs), seg = [];
+        for (let i = 0; i <= 30; i++) { const x = lo * Math.pow(hi / lo, i / 30); seg.push({ x: x * KF(), y: vg.K(-x) * 10 }); }
+        c3.data.datasets[1].data = seg;
+      }
+      const hop = Math.max(0.1, -buck.hUnit);
+      c3.data.datasets[2].data = [{ x: hop * KF(), y: vg.K(-hop) * 10 }];
+    } else {
+      const n = rich.snaps.length;
+      prof = rich.snaps.map((s, i) => line(`t = ${sig(s.t, 3)} h`, M,
+        Array.from(s.theta, (t, j) => ({ x: t, y: rich.z[j] })), { borderWidth: 1, borderColor: hexA(M, 0.25 + 0.5 * i / Math.max(1, n)) }));
+      const thNow = rich.thetaProfile();
+      prof.push(line(`now (${sig(rich.t, 3)} h)`, W, thNow.map((t, j) => ({ x: t, y: rich.z[j] })), { borderWidth: 3 }));
+      heads = Array.from(rich.h, (hh, j) => ({ z: rich.z[j], h: hh, Htot: hh + (st.L - rich.z[j]) }));
+      c3.$now = rich.t;
+      const s = rich.series;
+      c3.data.datasets[0].data = s.map(r => ({ x: r.t, y: r.qDrain * 10 }));
+      c3.data.datasets[1].data = s.map(r => ({ x: r.t, y: r.qInf * 10 }));
+      c3.data.datasets[2].data = [{ x: 0, y: st.qmm }, { x: st.dur, y: st.qmm }, { x: st.dur, y: 0 }, { x: st.T, y: 0 }];
+      c3.data.datasets[3].data = s.map(r => ({ x: r.t, y: r.cumDrain * 10 }));
+      c3.data.datasets[4].data = s.map(r => ({ x: r.t, y: r.cumRunoff * 10 }));
+    }
+    c1.data.datasets = refs.concat(prof);
+    c1.options.plugins.legend.labels.filter = (it) => !(st.mode === 'rich' && /^t = /.test(it.text) && it.datasetIndex !== 2 && it.datasetIndex !== c1.data.datasets.length - 2);
+    c2.data.datasets[0].data = heads.map(r => ({ x: r.h * KF(), y: r.z }));
+    c2.data.datasets[1].data = heads.map(r => ({ x: r.Htot * KF(), y: r.z }));
+    charts.forEach(c => c.update('none'));
+  }
+  function hexA(col, a) {
+    const m = col.match(/^#([0-9a-f]{6})$/i);
+    if (!m) return col;
+    const v = parseInt(m[1], 16);
+    return `rgba(${v >> 16 & 255},${v >> 8 & 255},${v & 255},${a.toFixed(2)})`;
+  }
+
+  // ---------- stats ----------
+  function stat(k, v, unit, cls) { return `<div class="stat ${cls || ''}"><span class="k">${k}</span><span class="v">${v}<small>${unit || ''}</small></span></div>`; }
+  function renderStats() {
+    let html = '', banner = '';
+    if (st.mode === 'darcy') {
+      const t = st.simT, q = darcy.q(t), H = darcy.H(t);
+      const r = darcy.series.reduce((acc, s) => s.t <= t + 1e-9 ? s : acc, darcy.series[0]);
+      const over = (!darcy.supplyLimited && H >= st.Hmax - 1e-9) ? st.qmm - q * 10 : 0;
+      html += stat('Drainage flux', sig(q * 10, 3), 'mm/h', 'key');
+      html += stat('Hydraulic gradient', fmt((st.L + H) / st.L, 3), '');
+      html += stat('Ponding depth', fmt(H, 1), 'cm');
+      html += stat('Overflow runoff', sig(over, 3), 'mm/h', over > 0 ? 'alert' : '');
+      html += stat('Σ drained', sig(r.cum * 10, 3), 'mm');
+      html += stat('Steady after', darcy.supplyLimited ? '0' : sig(darcy.tSteady, 3), 'h');
+      if (darcy.supplyLimited) banner = `Inflow (${sig(st.qmm, 3)} mm/h) is below K<sub>s</sub> (${sig(vg.Ks * 10, 3)} mm/h), so the column cannot stay saturated. Drainage equals inflow here. Switch to Buckingham–Darcy or Richards to see the unsaturated profile.`;
+    } else if (st.mode === 'buck') {
+      const pts = buck.pts, mean = buck.storage / 10 / st.L;
+      html += stat('Drainage flux', sig(buck.q * 10, 3), 'mm/h', 'key');
+      html += stat('Runoff', sig(buck.runoff * 10, 3), 'mm/h', buck.runoff > 0 ? 'alert' : '');
+      html += stat(pts[0].h > 0 ? 'Surface pressure h' : 'Surface suction', sig(Math.abs(pts[0].h) * KF(), 3), KU());
+      html += stat('θ at surface', fmt(pts[0].theta, 3), 'm³/m³');
+      html += stat('Mean θ', fmt(mean, 3), 'm³/m³');
+      html += stat('Storage', sig(buck.storage, 4), 'mm');
+      if (buck.saturated) banner = `Inflow is at or above K<sub>s</sub> (${sig(vg.Ks * 10, 3)} mm/h): the column saturates and ponds ${fmt(buck.H, 1)} cm, so flow follows Darcy's law.` + (buck.runoff > 0 ? ' The pond has reached the rim and the excess overflows.' : '');
+    } else {
+      const r = rich, S = r.storage() * 10, mb = r.massError() * 10;
+      html += stat('Drainage now', sig(r.qDrain * 10, 3), 'mm/h', 'key');
+      html += stat('Infiltration now', sig(r.qInf * 10, 3), 'mm/h');
+      html += stat('Σ infiltrated', sig(r.cumInf * 10, 3), 'mm');
+      html += stat('Σ drained', sig(r.cumDrain * 10, 3), 'mm');
+      html += stat('Σ runoff', sig(r.cumRunoff * 10, 3), 'mm', r.cumRunoff > 1e-4 ? 'alert' : '');
+      html += stat('Storage', sig(S, 4), 'mm');
+      html += stat('Wetting front', fmt(r.wettingFront(), 1), 'cm');
+      html += stat('Mass balance err.', sig(mb, 2), 'mm');
+      if (r.failed) banner = 'The solver could not converge for these settings. Try a lower inflow, a different initial water content, or a coarser soil.';
+      else if (st.bc === 'wt' && r.qDrain < -1e-6) banner = 'Negative drainage means capillary rise: water is moving up from the water table into the drier soil above.';
+    }
+    $('stats').innerHTML = html;
+    $('banner').hidden = !banner; $('banner').innerHTML = banner;
+    const t = st.mode === 'rich' ? rich.t : st.simT;
+    $('clockT').textContent = `t = ${fmt(t, 2)} / ${st.T} h`;
+    let state = '';
+    if (st.mode === 'rich') state = rich.failed ? 'stopped' : (rich.t < st.dur ? (rich.top === 'head' ? 'inflow · surface ponded' : 'inflow') : 'redistribution');
+    if (st.mode === 'darcy') state = darcy.supplyLimited ? 'supply-limited' : (darcy.H(t) >= st.Hmax - 1e-9 ? 'overflowing' : 'ponding');
+    $('clockState').textContent = state;
+    $('prog').style.width = (100 * Math.min(1, t / st.T)) + '%';
+  }
+
+  // ---------- column canvas ----------
+  const cv = $('col'), g = cv.getContext('2d');
+  const drops = [], drips = [];
+  const STOPS = [[0, [232, 215, 174]], [0.45, [176, 136, 84]], [0.8, [104, 80, 56]], [1, [44, 72, 104]]];
+  function seColor(se) {
+    se = Math.max(0, Math.min(1, se));
+    for (let i = 1; i < STOPS.length; i++) if (se <= STOPS[i][0]) {
+      const [a0, c0] = STOPS[i - 1], [a1, c1] = STOPS[i], f = (se - a0) / (a1 - a0);
+      return `rgb(${c0.map((v, k) => Math.round(v + (c1[k] - v) * f)).join(',')})`;
+    }
+    return 'rgb(44,72,104)';
+  }
+  function colState() {
+    const s = { L: st.L, qin: 0, pond: 0, pondMax: Math.max(st.Hmax, 5), film: false, runoff: 0, drain: 0, cum: null, wt: st.bc === 'wt' && st.mode !== 'darcy', theta: null };
+    if (st.mode === 'darcy') {
+      const t = st.simT; s.qin = st.qmm; s.pond = darcy.H(t); s.drain = darcy.q(t) * 10;
+      s.runoff = (!darcy.supplyLimited && s.pond >= st.Hmax - 1e-9) ? st.qmm - s.drain : 0;
+      const r = darcy.series.reduce((acc, x) => x.t <= t + 1e-9 ? x : acc, darcy.series[0]); s.cum = r.cum * 10;
+      s.theta = z => vg.ts; s.wt = false;
+    } else if (st.mode === 'buck') {
+      s.qin = st.qmm; s.pond = buck.H; s.drain = buck.q * 10; s.runoff = buck.runoff * 10;
+      const p = buck.pts; s.theta = z => interp(p, z);
+    } else {
+      s.qin = rich.t < st.dur - 1e-9 ? st.qmm : 0; s.drain = rich.qDrain * 10; s.cum = rich.cumDrain * 10;
+      s.film = rich.top === 'head' && s.qin > 0; s.runoff = s.film ? Math.max(0, st.qmm - rich.qInf * 10) : 0;
+      s.pondMax = 5;
+      const th = rich.thetaProfile(), dz = rich.dz;
+      s.theta = z => { const i = Math.min(th.length - 2, Math.floor(z / dz)), f = z / dz - i; return th[i] + (th[i + 1] - th[i]) * f; };
+    }
+    return s;
+  }
+  function interp(p, z) {
+    let lo = 0, hi = p.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (p[m].z <= z) lo = m; else hi = m; }
+    const a = p[lo], b = p[hi], f = b.z === a.z ? 0 : (z - a.z) / (b.z - a.z);
+    return a.theta + (b.theta - a.theta) * f;
+  }
+  function drawColumn(dtReal) {
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, W, H);
+    const s = colState();
+    const ink = css('--ink'), muted = css('--muted'), water = css('--water'), line = css('--line'), warn = css('--warn');
+    const padL = 40, barW = 10, colW = Math.max(70, Math.min(120, W - padL - 70));
+    const x0 = padL, x1 = x0 + colW;
+    const rimY = 62, soilTop = 134, soilBot = 418, tipY = 446, bkTop = 462, bkBot = H - 8;
+    const pondPx = Math.min(soilTop - rimY, (soilTop - rimY) * s.pond / s.pondMax);
+    const surfY = s.film ? soilTop - 3 : soilTop - pondPx;
+    // inflow label
+    g.font = '600 11px "Archivo Narrow", Arial Narrow, sans-serif'; g.fillStyle = muted; g.textAlign = 'center';
+    g.fillText(s.qin > 0 ? `INFLOW ${sig(s.qin, 3)} mm/h` : 'INFLOW OFF', (x0 + x1) / 2, 12);
+    // drops
+    const spawn = s.qin > 0 ? Math.min(40, 2 + 6 * Math.sqrt(s.qin)) : 0;
+    if (dtReal > 0) {
+      let k = spawn * dtReal; while (k > 0) { if (Math.random() < k) drops.push({ x: x0 + 6 + Math.random() * (colW - 12), y: 18 + Math.random() * 6, v: 160 + Math.random() * 60 }); k -= 1; }
+      for (const d of drops) d.y += d.v * dtReal;
+    }
+    g.strokeStyle = water; g.lineWidth = 1.5;
+    for (let i = drops.length - 1; i >= 0; i--) {
+      const d = drops[i]; if (d.y > surfY) { drops.splice(i, 1); continue; }
+      g.beginPath(); g.moveTo(d.x, d.y - 6); g.lineTo(d.x, d.y); g.stroke();
+    }
+    // soil
+    const nRows = soilBot - soilTop;
+    for (let r = 0; r < nRows; r++) {
+      const z = s.L * (r + 0.5) / nRows;
+      const th = s.theta(z), se = (th - vg.tr) / (vg.ts - vg.tr);
+      g.fillStyle = seColor(se); g.fillRect(x0, soilTop + r, colW, 1.2);
+    }
+    // ponding / film
+    if (pondPx > 0.5 || s.film) {
+      g.fillStyle = hexA(water, 0.45); g.fillRect(x0, surfY, colW, soilTop - surfY);
+      g.strokeStyle = water; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x0, surfY); g.lineTo(x1, surfY); g.stroke();
+    }
+    // overflow spill
+    if (s.runoff > 1e-3) {
+      g.strokeStyle = warn; g.lineWidth = 2;
+      for (const sx of [x0 - 1, x1 + 1]) { g.beginPath(); g.moveTo(sx, s.film ? soilTop : rimY); g.quadraticCurveTo(sx + (sx < x0 + 5 ? -10 : 10), (s.film ? soilTop : rimY) + 10, sx + (sx < x0 + 5 ? -12 : 12), soilTop + 40); g.stroke(); }
+      g.fillStyle = warn; g.font = '600 11px "Archivo Narrow", Arial Narrow, sans-serif'; g.textAlign = 'center';
+      g.fillText(`RUNOFF ${sig(s.runoff, 3)} mm/h`, (x0 + x1) / 2, rimY - 8);
+    }
+    if (pondPx > 12) { g.fillStyle = ink; g.font = '500 11px "JetBrains Mono", monospace'; g.textAlign = 'center'; g.fillText(`Hp ${fmt(s.pond, 1)} cm`, (x0 + x1) / 2, surfY + Math.min(16, pondPx / 2 + 4)); }
+    // tube walls
+    g.strokeStyle = ink; g.lineWidth = 2; g.beginPath();
+    g.moveTo(x0, rimY); g.lineTo(x0, soilBot); g.lineTo(x0 + colW * 0.38, tipY - 10); g.lineTo(x0 + colW * 0.46, tipY);
+    g.moveTo(x1, rimY); g.lineTo(x1, soilBot); g.lineTo(x1 - colW * 0.38, tipY - 10); g.lineTo(x1 - colW * 0.46, tipY);
+    g.stroke();
+    // mesh at base
+    g.strokeStyle = muted; g.lineWidth = 1; g.setLineDash([2, 2]); g.beginPath(); g.moveTo(x0, soilBot); g.lineTo(x1, soilBot); g.stroke(); g.setLineDash([]);
+    // water table
+    if (s.wt) {
+      g.strokeStyle = water; g.lineWidth = 2; g.setLineDash([6, 3]); g.beginPath(); g.moveTo(x0 - 8, soilBot - 1); g.lineTo(x1 + 8, soilBot - 1); g.stroke(); g.setLineDash([]);
+      g.fillStyle = water; g.beginPath(); const tx = x1 + 14; g.moveTo(tx - 5, soilBot - 10); g.lineTo(tx + 5, soilBot - 10); g.lineTo(tx, soilBot - 3); g.fill();
+      g.font = '600 10px "Archivo Narrow", Arial Narrow, sans-serif'; g.textAlign = 'left'; g.fillText('WT', tx + 7, soilBot - 3);
+    }
+    // depth ticks
+    g.fillStyle = muted; g.strokeStyle = muted; g.lineWidth = 1; g.textAlign = 'right'; g.font = '400 10px "JetBrains Mono", monospace';
+    const step = s.L <= 30 ? 5 : s.L <= 60 ? 10 : s.L <= 120 ? 20 : 40;
+    for (let z = 0; z <= s.L + 1e-9; z += step) {
+      const y = soilTop + (soilBot - soilTop) * z / s.L;
+      g.beginPath(); g.moveTo(x0 - 6, y); g.lineTo(x0 - 2, y); g.stroke(); g.fillText(String(z), x0 - 8, y + 3);
+    }
+    g.save(); g.translate(10, (soilTop + soilBot) / 2); g.rotate(-Math.PI / 2); g.textAlign = 'center'; g.font = '600 10px "Archivo Narrow", Arial Narrow, sans-serif'; g.fillText('DEPTH (cm)', 0, 0); g.restore();
+    // colour bar
+    const bx = x1 + 22;
+    if (bx + barW + 30 <= W) {
+      for (let r = 0; r < nRows; r++) { g.fillStyle = seColor(1 - r / nRows); g.fillRect(bx, soilTop + r, barW, 1.2); }
+      g.strokeStyle = line; g.strokeRect(bx, soilTop, barW, nRows);
+      g.fillStyle = muted; g.textAlign = 'left'; g.font = '400 10px "JetBrains Mono", monospace';
+      g.fillText(fmt(vg.ts, 2), bx + barW + 4, soilTop + 8); g.fillText(fmt(vg.tr, 2), bx + barW + 4, soilBot);
+      g.font = '500 12px "JetBrains Mono", monospace'; g.fillText('θ', bx + barW + 4, (soilTop + soilBot) / 2);
+    }
+    // drips
+    const tipX = (x0 + x1) / 2;
+    const rate = Math.max(0, s.drain);
+    if (dtReal > 0 && rate > 0) {
+      let k = Math.min(30, 1 + 4 * Math.sqrt(rate)) * dtReal; while (k > 0) { if (Math.random() < k) drips.push({ y: tipY + 2, v: 60 }); k -= 1; }
+    }
+    // beaker
+    const bkW = colW * 0.9, bkX = tipX - bkW / 2;
+    let fillFrac = 0, cumLabel = '';
+    if (s.cum != null) {
+      const cap = Math.max(10, Math.pow(10, Math.ceil(Math.log10(Math.max(s.cum, 1) * 1.05))));
+      fillFrac = Math.max(0, s.cum) / cap; cumLabel = `Σ ${sig(Math.max(0, s.cum), 3)} mm`;
+    } else { fillFrac = 0.5; cumLabel = 'steady'; }
+    const fillY = bkBot - (bkBot - bkTop) * fillFrac;
+    g.fillStyle = hexA(water, 0.35); g.fillRect(bkX, fillY, bkW, bkBot - fillY);
+    g.strokeStyle = ink; g.lineWidth = 1.5; g.beginPath(); g.moveTo(bkX, bkTop); g.lineTo(bkX, bkBot); g.lineTo(bkX + bkW, bkBot); g.lineTo(bkX + bkW, bkTop); g.stroke();
+    if (dtReal > 0) for (const d of drips) { d.v += 600 * dtReal; d.y += d.v * dtReal; }
+    g.fillStyle = water;
+    for (let i = drips.length - 1; i >= 0; i--) { const d = drips[i]; if (d.y > fillY) { drips.splice(i, 1); continue; } g.beginPath(); g.arc(tipX, d.y, 2.2, 0, Math.PI * 2); g.fill(); }
+    g.textAlign = 'left'; g.font = '600 11px "Archivo Narrow", Arial Narrow, sans-serif'; g.fillStyle = s.drain < -1e-6 ? warn : muted;
+    const lx = Math.min(W - 4, bkX + bkW + 6);
+    g.textAlign = lx > W - 60 ? 'right' : 'left';
+    g.fillText(s.drain < -1e-6 ? 'UPFLOW' : 'DRAINAGE', lx > W - 60 ? W - 2 : lx, tipY + 4);
+    g.font = '500 11px "JetBrains Mono", monospace'; g.fillStyle = ink;
+    g.fillText(`${sig(s.drain, 3)} mm/h`, lx > W - 60 ? W - 2 : lx, tipY + 18);
+    g.fillStyle = muted; g.fillText(cumLabel, lx > W - 60 ? W - 2 : lx, bkBot - 4);
+  }
+
+  // ---------- loop ----------
+  let lastTs = 0;
+  function refresh(forceCharts) {
+    renderStats();
+    const now = performance.now();
+    if (forceCharts || now - lastChartDraw > 120) { updateCharts(); lastChartDraw = now; }
+  }
+  function frame(ts) {
+    const dtReal = lastTs ? Math.min(0.1, (ts - lastTs) / 1000) : 0; lastTs = ts;
+    let changed = false;
+    if (st.playing && (st.mode === 'darcy' || st.mode === 'rich') && !isDone()) {
+      const rate = st.T / 14 * st.speed; // sim-hours per real second (14 s for the full run at 1×)
+      if (st.mode === 'darcy') {
+        st.simT = st.fast ? st.T : Math.min(st.T, st.simT + rate * dtReal);
+      } else {
+        const target = st.fast ? st.T : Math.min(st.T, rich.t + rate * dtReal);
+        rich.advance(target, st.fast ? 40 : 20);
+        st.simT = rich.t;
+      }
+      changed = true;
+      if (isDone()) { st.fast = false; syncTransport(); refresh(true); }
+    }
+    if (changed) refresh(false);
+    drawColumn(st.playing || st.mode === 'buck' ? dtReal : 0);
+    requestAnimationFrame(frame);
+  }
+
+  // theme changes: rebuild chart colours
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const onTheme = () => { buildCharts(); updateCharts(); };
+  mq.addEventListener && mq.addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  function setHU(u) {
+    hu = u;
+    try { localStorage.setItem('soilflow-hu', u); } catch (e) {}
+    document.querySelectorAll('[data-hu]').forEach(x => x.setAttribute('aria-pressed', x.dataset.hu === u ? 'true' : 'false'));
+  }
+  document.querySelectorAll('[data-hu]').forEach(b => b.addEventListener('click', () => {
+    setHU(b.dataset.hu);
+    if (!(st.bc === 'wt' && st.mode === 'rich')) {
+      const h0 = vg.hOfTheta(st.th0);
+      $('th0hint').textContent = `Initial suction ${sig(-h0 * KF(), 3)} ${KU()} (h₀ = ${sig(h0, 3)} cm) · relative saturation ${fmt(vg.Se(h0) * 100, 0)}%`;
+    }
+    buildCharts(); updateCharts(); renderStats();
+  }));
+  setHU(hu);
+
+  // ---------- public API for the Learn module ----------
+  function snapshot() {
+    const S = {};
+    const put = (k, label, v, unit, d) => { S[k] = { label, v, unit: unit || '', d: d == null ? 3 : d }; };
+    put('model', 'Model', { darcy: 'Darcy', buck: 'Buckingham–Darcy', rich: 'Richards' }[st.mode], '');
+    put('soil', 'Soil', st.custom ? 'Custom' : SOILS[st.soil].name, '');
+    put('L', 'Column', st.L, 'cm');
+    put('q', 'Inflow', st.qmm, 'mm/h');
+    if (st.mode !== 'darcy') put('bc', 'Base', st.bc === 'wt' ? 'Water table' : 'Free drainage', '');
+    if (st.mode === 'darcy') {
+      const t = st.simT, q = darcy.q(t), H = darcy.H(t);
+      const r = darcy.series.reduce((acc, s) => s.t <= t + 1e-9 ? s : acc, darcy.series[0]);
+      put('t', 'Time', t, 'h');
+      put('drain', 'Drainage', q * 10, 'mm/h');
+      put('grad', 'Gradient', (st.L + H) / st.L, '');
+      put('pond', 'Ponding', H, 'cm');
+      put('over', 'Overflow', (!darcy.supplyLimited && H >= st.Hmax - 1e-9) ? st.qmm - q * 10 : 0, 'mm/h');
+      put('cumDrain', 'Σ drained', r.cum * 10, 'mm');
+    } else if (st.mode === 'buck') {
+      const p = buck.pts;
+      put('drain', 'Drainage', buck.q * 10, 'mm/h');
+      put('runoffRate', 'Runoff', buck.runoff * 10, 'mm/h');
+      put('hsurf', 'Surface h', p[0].h * KF(), KU());
+      put('thTop', 'θ surface', p[0].theta, 'm³/m³');
+      put('thBot', 'θ base', p[p.length - 1].theta, 'm³/m³');
+      put('thMean', 'Mean θ', buck.storage / 10 / st.L, 'm³/m³');
+      put('storage', 'Storage', buck.storage, 'mm');
+    } else {
+      const r = rich, s = r.series;
+      put('h0', 'Initial h', st.bc === 'wt' ? NaN : vg.hOfTheta(st.th0), 'cm');
+      put('th0', 'Initial θ', r.theta0, 'm³/m³');
+      put('dur', 'Inflow for', st.dur, 'h');
+      put('t', 'Time', r.t, 'h');
+      const wet = s.filter(x => x.qSupply > 0);
+      const pond = wet.find(x => x.t > 0 && x.qInf < x.qSupply * 0.999);
+      put('tPond', 'Ponding at', pond ? pond.t : NaN, 'h');
+      const end = wet.length ? wet[wet.length - 1] : null;
+      put('iEnd', 'Infil. rate at end of inflow', end && r.t >= st.dur - 1e-6 ? end.qInf * 10 : NaN, 'mm/h');
+      put('inf', 'Σ infiltrated', r.cumInf * 10, 'mm');
+      put('cumRunoff', 'Σ runoff', r.cumRunoff * 10, 'mm');
+      put('cumDrain', 'Σ drained', r.cumDrain * 10, 'mm');
+      put('storage', 'Storage', r.storage() * 10, 'mm');
+      put('front', 'Wetting front', r.wettingFront(), 'cm');
+    }
+    return S;
+  }
+  function load(sc) {
+    if (sc.mode) {
+      st.mode = sc.mode;
+      document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-selected', x.dataset.mode === st.mode ? 'true' : 'false'));
+    }
+    if (sc.soil) { st.soil = sc.soil; st.p = Object.assign({}, SOILS[sc.soil]); st.custom = false; soilSel.value = sc.soil; renderParams(); }
+    if (sc.L != null) { st.L = sc.L; $('L').value = sc.L; }
+    if (sc.q != null) { st.qmm = sc.q; $('q').value = sliderFromQ(sc.q); }
+    if (sc.Hmax != null) { st.Hmax = sc.Hmax; $('Hmax').value = sc.Hmax; }
+    if (sc.T != null) { st.T = sc.T; $('T').value = sc.T; }
+    if (sc.dur != null) { st.dur = sc.dur; $('dur').max = Math.max(48, sc.dur); $('dur').value = sc.dur; }
+    if (sc.bc) { st.bc = sc.bc; document.querySelectorAll('[data-bc]').forEach(x => x.setAttribute('aria-pressed', x.dataset.bc === sc.bc ? 'true' : 'false')); }
+    if (sc.h0 != null) { st.h0req = sc.h0; st.th0 = null; }
+    else if (sc.soil) st.th0 = null;
+    rebuild();
+    if (sc.run === 'end') { st.fast = true; syncTransport(); }
+  }
+  window.SF = { load, snapshot, isDone: () => st.mode === 'buck' || isDone(), state: () => ({ mode: st.mode, soil: st.soil, L: st.L, q: st.qmm, bc: st.bc, dur: st.dur, T: st.T }) };
+  renderParams();
+  rebuild();
+  requestAnimationFrame(frame);
+})();
+
+</script>
+<script>
+// ===== LESSONS START =====
+// Answer keys are computed from the same engine the simulator uses, so they always match the model.
+const LX = (function () {
+  const V = k => makeVG(SOILS[k]);
+  const cache = {};
+  function rich(key, soil, o) {
+    if (cache[key]) return cache[key];
+    const vg = V(soil);
+    const S = createRichards(Object.assign({ vg, L: 100, bottom: 'free' }, o, { qin: o.qin, theta0: o.theta0 != null ? o.theta0 : vg.theta(o.h0) }));
+    S.advance(o.tEnd);
+    const s = S.series, wet = s.filter(x => x.qSupply > 0);
+    const end = wet[wet.length - 1];
+    const pond = wet.find(x => x.t > 0 && x.qInf < x.qSupply * 0.999);
+    return (cache[key] = { S, inf: S.cumInf * 10, drain: S.cumDrain * 10, runoff: S.cumRunoff * 10, storage: S.storage() * 10, S0: S.S0 * 10, iEnd: end.qInf * 10, tPond: pond ? pond.t : NaN });
+  }
+  const buck = (soil, L, qmm, bc) => buckinghamModel(V(soil), L, qmm / 10, 10, bc);
+  const KPA = 0.0980665;
+  return { V, rich, buck, KPA,
+    ks: k => V(k).Ks * 10,
+    storm: soil => rich('storm-' + soil, soil, { qin: 2, tRain: 3, tEnd: 24, h0: -300 }),
+    ante: h0 => rich('ante' + h0, 'loam', { qin: 2, tRain: 3, tEnd: 24, h0 }),
+    irr: (q, d) => rich('irr' + q + '-' + d, 'sandy_loam', { L: 60, qin: q / 10, tRain: d, tEnd: 72, h0: -50 })
+  };
+})();
+
+const LESSONS = [
+  // ------------------------------------------------------------------ 1
+  {
+    id: 'darcy', title: 'Measuring Ks in a permeameter', model: 'Darcy', minutes: 20,
+    caseHtml: `A grower in Yolo County sends an intact <b>loam</b> core to the lab. Before designing the irrigation system, the team needs its saturated hydraulic conductivity. You run a <b>constant-head test</b>: water is supplied faster than the core can drain, it ponds on top up to an overflow rim 10 cm high, and you measure the outflow at the base.`,
+    objectives: ['Apply Darcy\'s law q = K<sub>s</sub>·ΔH/L to a saturated column', 'Back-calculate K<sub>s</sub> from a measured flux and gradient', 'Explain why the gradient, not the column length, controls the flux'],
+    steps: [
+      {
+        title: 'Set up the test',
+        html: `<p>Load the scenario: 60 cm loam column, 20 mm/h supply, 10 cm overflow rim. Press <b>Skip to end</b> once the animation starts, or watch the pond fill.</p>
+               <p>The total head drop across the core is the ponding depth plus the column length, ΔH = H<sub>p</sub> + L, measured from the outlet (h = 0).</p>`,
+        scenario: { mode: 'darcy', soil: 'loam', L: 60, q: 20, Hmax: 10, T: 48 },
+        questions: [
+          { type: 'num', id: 'd1', prompt: 'Once the pond reaches the rim, what is the hydraulic gradient ΔH/L across the core?', unit: '–',
+            ans: () => (60 + 10) / 60, tol: 0.01,
+            explain: a => `ΔH/L = (L + H<sub>p</sub>)/L = (60 + 10)/60 = ${a.toFixed(3)}. Gravity alone would give 1; the 10 cm of ponding adds the rest.` },
+          { type: 'num', id: 'd2', prompt: 'Read the steady drainage flux from the readouts.', unit: 'mm/h',
+            ans: () => LX.ks('loam') * 70 / 60, tol: 0.02,
+            explain: a => `q = K<sub>s</sub> × ${(70 / 60).toFixed(3)} = ${a.toFixed(2)} mm/h. The rest of the 20 mm/h supply overflows the rim.` }
+        ]
+      },
+      {
+        title: 'Back-calculate Ks',
+        html: `<p>In the lab you only know the outflow and the geometry. Rearranging Darcy's law: K<sub>s</sub> = q / (ΔH/L).</p>`,
+        questions: [
+          { type: 'num', id: 'd3', prompt: 'Using your two answers above, what is K<sub>s</sub> of this core?', unit: 'mm/h',
+            ans: () => LX.ks('loam'), tol: 0.03,
+            explain: a => `K<sub>s</sub> = ${(a * 70 / 60).toFixed(2)} / ${(70 / 60).toFixed(3)} = ${a.toFixed(1)} mm/h (${(a * 2.4).toFixed(1)} cm/day). Check it against the Ks (mm/h) box in the soil parameters.` }
+        ]
+      },
+      {
+        title: 'Change the core length',
+        html: `<p>The technician asks whether a longer core would give a different answer. Predict first, then test it.</p>`,
+        questions: [
+          { type: 'mc', id: 'd4', predict: true, prompt: 'If the core is 120 cm instead of 60 cm (same 10 cm rim), the measured outflow will…',
+            options: [
+              { t: 'double, because there is twice as much soil', ok: false },
+              { t: 'decrease slightly, toward K<sub>s</sub>', ok: true },
+              { t: 'stay exactly the same', ok: false },
+              { t: 'halve, because the path is twice as long', ok: false }],
+            explain: () => `The gradient falls from 70/60 = 1.167 to 130/120 = 1.083, so q drops from ${(LX.ks('loam') * 70 / 60).toFixed(2)} to ${(LX.ks('loam') * 130 / 120).toFixed(2)} mm/h. As L grows the pond matters less and q → K<sub>s</sub>. That is why the same K<sub>s</sub> comes out of any length once you divide by the gradient.` }
+        ],
+        tryIt: { label: 'Test with a 120 cm core', scenario: { mode: 'darcy', soil: 'loam', L: 120, q: 20, Hmax: 10, T: 48, run: 'end' } }
+      },
+      {
+        title: 'When Darcy mode does not apply',
+        html: `<p>Now try a <b>sand</b> core with the same 20 mm/h supply.</p>`,
+        scenario: { mode: 'darcy', soil: 'sand', L: 60, q: 20, Hmax: 10, T: 24 },
+        questions: [
+          { type: 'mc', id: 'd5', prompt: 'Why does the tool warn that the column cannot stay saturated?',
+            options: [
+              { t: 'Sand has a lower porosity than loam', ok: false },
+              { t: 'The supply (20 mm/h) is far below sand\'s K<sub>s</sub> (297 mm/h), so no pond forms and the pores drain', ok: true },
+              { t: 'The column is too short for Darcy\'s law', ok: false },
+              { t: 'Sand does not obey Darcy\'s law', ok: false }],
+            explain: () => `A constant-head test only works if supply exceeds what the core can transmit. For a sand you would need over ${LX.ks('sand').toFixed(0)} mm/h of supply. Below that, flow is unsaturated, which is the subject of the next lessons.` }
+        ]
+      }
+    ]
+  },
+  // ------------------------------------------------------------------ 2
+  {
+    id: 'unitgrad', title: 'Steady drip under a deep root zone', model: 'Buckingham–Darcy', minutes: 20,
+    caseHtml: `An almond orchard on deep <b>loam</b> is drip-irrigated for weeks at a near-constant rate. Far below the emitters, water moves downward at the same rate it is applied, and the profile no longer changes. Growers want to know: <i>how wet does the soil stay, and does the application rate change that?</i>`,
+    objectives: ['Recognise unit-gradient (gravity) drainage', 'Use K(h) = q to find the steady water content and suction', 'Compare how textures respond to the same flux'],
+    steps: [
+      {
+        title: 'A uniform profile',
+        html: `<p>Load the scenario: 100 cm loam, free drainage at the base, steady flux 2 mm/h. Look at the water content and head profiles.</p>`,
+        scenario: { mode: 'buck', soil: 'loam', L: 100, q: 2, bc: 'free' },
+        questions: [
+          { type: 'mc', id: 'u1', prompt: 'The pressure head h is the same at every depth. What does that tell you about the total-head gradient?',
+            options: [{ t: 'It is zero: no flow', ok: false }, { t: 'It is exactly 1: gravity alone drives the flow', ok: true }, { t: 'It equals the inflow rate', ok: false }, { t: 'It increases with depth', ok: false }],
+            explain: () => `With dh/dz = 0, H = h + z changes 1 cm per cm of depth, so q = K(h)·1. The soil adjusts its wetness until its conductivity equals the flux.` },
+          { type: 'num', id: 'u2', prompt: 'What is the steady water content θ in the column?', unit: 'm³/m³',
+            ans: () => LX.buck('loam', 100, 2, 'free').pts[0].theta, tolAbs: 0.005,
+            explain: a => `θ = ${a.toFixed(3)} m³/m³: the point where K(θ) = 2 mm/h. Find it on the conductivity chart as the blue dot.` }
+        ]
+      },
+      {
+        title: 'Vary the application rate',
+        html: `<p>Run the column at <b>0.5, 1, 2 and 5 mm/h</b> (use the buttons) and press <b>Record this run</b> after each. Watch the dot slide along the K(h) curve.</p>`,
+        presets: [
+          { label: '0.5 mm/h', scenario: { mode: 'buck', soil: 'loam', L: 100, q: 0.5, bc: 'free' } },
+          { label: '1 mm/h', scenario: { mode: 'buck', soil: 'loam', L: 100, q: 1, bc: 'free' } },
+          { label: '2 mm/h', scenario: { mode: 'buck', soil: 'loam', L: 100, q: 2, bc: 'free' } },
+          { label: '5 mm/h', scenario: { mode: 'buck', soil: 'loam', L: 100, q: 5, bc: 'free' } }],
+        record: ['soil', 'q', 'hsurf', 'thTop', 'storage'],
+        questions: [
+          { type: 'num', id: 'u3', prompt: 'At 1 mm/h, what is the suction in the column? Answer in kPa (use the Head units toggle if needed).', unit: 'kPa',
+            ans: () => -LX.buck('loam', 100, 1, 'free').pts[0].h * LX.KPA, tol: 0.05,
+            explain: a => `h = ${(a / LX.KPA).toFixed(1)} cm, so suction ≈ ${a.toFixed(2)} kPa. Ten times less flux (0.5 vs 5 mm/h) raises suction from ${(-LX.buck('loam', 100, 5, 'free').pts[0].h * LX.KPA).toFixed(2)} to ${(-LX.buck('loam', 100, 0.5, 'free').pts[0].h * LX.KPA).toFixed(2)} kPa.` },
+          { type: 'mc', id: 'u4', prompt: 'Why does a lower application rate leave the soil drier?',
+            options: [{ t: 'Less water evaporates at low rates', ok: false }, { t: 'K(h) must equal the flux, and a smaller K is reached only at higher suction (drier soil)', ok: true }, { t: 'The gradient becomes larger at low rates', ok: false }],
+            explain: () => `Under unit gradient q = K(h). Conductivity falls steeply as the soil dries, so a small flux is carried by a drier, less conductive soil. The root zone under a slow, steady drip is well aerated even though water is always moving.` }
+        ]
+      },
+      {
+        title: 'Same flux, different textures',
+        html: `<p>Apply 2 mm/h to a <b>sandy loam</b>, a <b>loam</b> and a <b>clay loam</b>. Record each run.</p>`,
+        presets: [
+          { label: 'Sandy loam', scenario: { mode: 'buck', soil: 'sandy_loam', L: 100, q: 2, bc: 'free' } },
+          { label: 'Loam', scenario: { mode: 'buck', soil: 'loam', L: 100, q: 2, bc: 'free' } },
+          { label: 'Clay loam', scenario: { mode: 'buck', soil: 'clay_loam', L: 100, q: 2, bc: 'free' } }],
+        record: ['soil', 'q', 'hsurf', 'thTop'],
+        questions: [
+          { type: 'mc', id: 'u5', prompt: 'Which soil sits closest to saturation (lowest suction) at 2 mm/h?',
+            options: [{ t: 'Sandy loam', ok: false }, { t: 'Loam', ok: false }, { t: 'Clay loam', ok: true }],
+            explain: () => `Clay loam: h ≈ ${LX.buck('clay_loam', 100, 2, 'free').pts[0].h.toFixed(1)} cm vs ${LX.buck('sandy_loam', 100, 2, 'free').pts[0].h.toFixed(1)} cm for sandy loam. Its K<sub>s</sub> (${LX.ks('clay_loam').toFixed(1)} mm/h) is close to the flux, so it barely desaturates. Push the flux above K<sub>s</sub> and it ponds.` }
+        ]
+      }
+    ]
+  },
+  // ------------------------------------------------------------------ 3
+  {
+    id: 'wt', title: 'A shallow water table in the Delta', model: 'Buckingham–Darcy · Richards', minutes: 25,
+    caseHtml: `In parts of the Sacramento–San Joaquin Delta the water table sits about <b>1 m</b> below the surface and is held in place by drainage ditches. A field gets a light, steady recharge from irrigation. How does the water table change the root-zone water, compared with a deep, freely draining soil?`,
+    objectives: ['Contrast a fixed water table (h = 0) with free drainage', 'Identify the capillary fringe and how texture controls it', 'Interpret outflow at a water table as recharge'],
+    steps: [
+      {
+        title: 'Water table vs. free drainage',
+        html: `<p>Load the loam column at 0.5 mm/h with a water table at its base, then switch the bottom boundary to <b>Free drainage</b> and compare. Record both runs.</p>`,
+        presets: [
+          { label: 'Water table', scenario: { mode: 'buck', soil: 'loam', L: 100, q: 0.5, bc: 'wt' } },
+          { label: 'Free drainage', scenario: { mode: 'buck', soil: 'loam', L: 100, q: 0.5, bc: 'free' } }],
+        record: ['soil', 'bc', 'thTop', 'thBot', 'storage'],
+        questions: [
+          { type: 'mc', id: 'w1', prompt: 'Where do the two profiles differ most?',
+            options: [{ t: 'Near the surface', ok: false }, { t: 'Near the base, just above the water table', ok: true }, { t: 'They differ uniformly at all depths', ok: false }],
+            explain: () => `In the top 40 cm or so, both columns sit at the same unit-gradient head (θ ≈ ${LX.buck('loam', 100, 0.5, 'free').pts[0].theta.toFixed(3)}). Near the base the water table pulls h up to 0 and θ up to θ<sub>s</sub>.` },
+          { type: 'num', id: 'w2', prompt: 'How much more water (mm) does the column hold over the water table than with free drainage?', unit: 'mm',
+            ans: () => LX.buck('loam', 100, 0.5, 'wt').storage - LX.buck('loam', 100, 0.5, 'free').storage, tolAbs: 1.5,
+            explain: a => `About ${a.toFixed(0)} mm, all of it in the lower part of the column.` }
+        ]
+      },
+      {
+        title: 'Capillary fringe and texture',
+        html: `<p>Keep the water table and compare a <b>sand</b> with a <b>silty clay loam</b>. Look at how high above the base the soil stays close to saturation.</p>`,
+        presets: [
+          { label: 'Sand', scenario: { mode: 'buck', soil: 'sand', L: 100, q: 0.5, bc: 'wt' } },
+          { label: 'Silty clay loam', scenario: { mode: 'buck', soil: 'silty_clay_loam', L: 100, q: 0.5, bc: 'wt' } }],
+        record: ['soil', 'thTop', 'thBot', 'storage'],
+        questions: [
+          { type: 'mc', id: 'w3', predict: true, prompt: 'Which soil stays nearly saturated farthest above the water table?',
+            options: [{ t: 'Sand', ok: false }, { t: 'Silty clay loam', ok: true }, { t: 'They are the same', ok: false }],
+            explain: () => `Silty clay loam (α = 0.010 /cm) has small pores that stay full until suctions of roughly 1/α ≈ 100 cm, so the whole 1 m column stays near θ<sub>s</sub>. Sand (α = 0.145 /cm) drains within about 10 cm of the water table. Fine-textured fields over shallow groundwater stay wet and are hard to work.` }
+        ]
+      },
+      {
+        title: 'Recharge after irrigation',
+        html: `<p>Now a transient case. The loam column starts in equilibrium with the water table (no flow), then receives 20 mm/h for 3 h. Press <b>Skip to end</b>.</p>`,
+        scenario: { mode: 'rich', soil: 'loam', L: 100, q: 20, dur: 3, T: 48, bc: 'wt' },
+        record: ['soil', 'bc', 'inf', 'cumDrain', 'cumRunoff'],
+        questions: [
+          { type: 'mc', id: 'w4', prompt: 'What does the "drainage" leaving the base represent here?',
+            options: [{ t: 'Water lost from a free outlet', ok: false }, { t: 'Recharge across the water table to the groundwater (removed by the ditches)', ok: true }, { t: 'Capillary rise', ok: false }],
+            explain: () => `The fixed h = 0 boundary assumes something holds the water table level. Water arriving from above crosses it and leaves. After inflow stops, recharge continues until the profile relaxes back toward hydrostatic equilibrium, where the flux is zero.` }
+        ]
+      }
+    ]
+  },
+  // ------------------------------------------------------------------ 4
+  {
+    id: 'storm', title: 'Storm runoff on three fields', model: 'Richards', minutes: 25,
+    caseHtml: `A summer thunderstorm drops <b>20 mm/h for 3 hours</b> (60 mm) on neighbouring fields with different textures. All start moderately dry (h = −300 cm, about 30 kPa). The county wants to know which fields will shed runoff, and when ponding starts.`,
+    objectives: ['Explain why infiltration rate declines during a storm', 'Relate ponding and runoff to rain rate vs. K<sub>s</sub>', 'Rank textures by runoff risk'],
+    steps: [
+      {
+        title: 'Predict, then run the loam',
+        html: `<p>Before running anything, make a prediction. Then load the loam field and press <b>Skip to end</b>. Watch the green infiltration line on the time chart.</p>`,
+        questions: [
+          { type: 'mc', id: 's1', predict: true, prompt: 'Which field will generate the most runoff?',
+            options: [{ t: 'Sand', ok: false }, { t: 'Sandy loam', ok: false }, { t: 'Loam', ok: false }, { t: 'Clay loam', ok: true }],
+            explain: () => `Clay loam: K<sub>s</sub> is only ${LX.ks('clay_loam').toFixed(1)} mm/h, far below the 20 mm/h rain, so it ponds within minutes. Sand (K<sub>s</sub> ${LX.ks('sand').toFixed(0)} mm/h) never ponds.` }
+        ],
+        scenario: { mode: 'rich', soil: 'loam', L: 100, q: 20, dur: 3, T: 24, h0: -300, bc: 'free' },
+        record: ['soil', 'tPond', 'iEnd', 'inf', 'cumRunoff', 'front']
+      },
+      {
+        title: 'Read the infiltration curve',
+        html: `<p>Hover the green line. At first the soil takes all 20 mm/h; then the surface saturates and infiltration falls below the rain rate.</p>`,
+        questions: [
+          { type: 'num', id: 's2', prompt: 'When does ponding start on the loam field?', unit: 'h',
+            ans: () => LX.storm('loam').tPond, tolAbs: 0.15,
+            explain: a => `About ${a.toFixed(1)} h into the storm. Until then, the strong suction gradient at the dry wetting front lets the soil absorb more than K<sub>s</sub>.` },
+          { type: 'num', id: 's3', prompt: 'What is the infiltration rate at the end of the storm (t = 3 h)?', unit: 'mm/h',
+            ans: () => LX.storm('loam').iEnd, tol: 0.1,
+            explain: a => `About ${a.toFixed(1)} mm/h, approaching K<sub>s</sub> = ${LX.ks('loam').toFixed(1)} mm/h. As the wetting front moves deeper, the suction gradient is spread over a longer distance and the gradient tends to 1.` }
+        ]
+      },
+      {
+        title: 'Compare the fields',
+        html: `<p>Run each texture and <b>Record</b> it. Compare ponding time, final infiltration rate and runoff.</p>`,
+        presets: [
+          { label: 'Sand', scenario: { mode: 'rich', soil: 'sand', L: 100, q: 20, dur: 3, T: 24, h0: -300, bc: 'free', run: 'end' } },
+          { label: 'Sandy loam', scenario: { mode: 'rich', soil: 'sandy_loam', L: 100, q: 20, dur: 3, T: 24, h0: -300, bc: 'free', run: 'end' } },
+          { label: 'Loam', scenario: { mode: 'rich', soil: 'loam', L: 100, q: 20, dur: 3, T: 24, h0: -300, bc: 'free', run: 'end' } },
+          { label: 'Silt loam', scenario: { mode: 'rich', soil: 'silt_loam', L: 100, q: 20, dur: 3, T: 24, h0: -300, bc: 'free', run: 'end' } },
+          { label: 'Clay loam', scenario: { mode: 'rich', soil: 'clay_loam', L: 100, q: 20, dur: 3, T: 24, h0: -300, bc: 'free', run: 'end' } }],
+        record: ['soil', 'tPond', 'iEnd', 'inf', 'cumRunoff', 'front'],
+        questions: [
+          { type: 'num', id: 's4', prompt: 'How much of the 60 mm storm runs off the clay loam field?', unit: 'mm',
+            ans: () => LX.storm('clay_loam').runoff, tol: 0.05,
+            explain: a => `About ${a.toFixed(0)} mm, ${(a / 60 * 100).toFixed(0)}% of the rain. Sand and sandy loam absorb all 60 mm because their K<sub>s</sub> exceeds the rain rate.` },
+          { type: 'mc', id: 's5', prompt: 'Which rule best predicts whether ponding can ever occur under steady rain?',
+            options: [{ t: 'Ponding occurs whenever rain exceeds 10 mm/h', ok: false }, { t: 'Ponding is possible only if the rain rate exceeds K<sub>s</sub>', ok: true }, { t: 'Ponding depends only on initial wetness', ok: false }],
+            explain: () => `If rain &lt; K<sub>s</sub>, the soil can always transmit it under a unit gradient, so the surface never saturates. If rain > K<sub>s</sub>, ponding is inevitable; initial wetness controls <i>when</i> (next lesson).` }
+        ]
+      }
+    ]
+  },
+  // ------------------------------------------------------------------ 5
+  {
+    id: 'ante', title: 'Antecedent moisture and flood risk', model: 'Richards', minutes: 15,
+    caseHtml: `The same 60 mm storm (20 mm/h for 3 h) hits the <b>loam</b> field twice in one week. The first time the soil is dry after a hot spell; the second time it falls two days after an earlier storm. Emergency planners want to know how much the earlier rain changes runoff.`,
+    objectives: ['Quantify the effect of initial water content on ponding time and runoff', 'Explain the mechanism in terms of storage and suction gradient'],
+    steps: [
+      {
+        title: 'Dry vs. wet start',
+        html: `<p>Run the storm with a <b>dry</b> start (h₀ = −1000 cm, ≈ 98 kPa) and a <b>wet</b> start (h₀ = −30 cm, ≈ 3 kPa). Record both. Add the two intermediate cases if you have time.</p>`,
+        presets: [
+          { label: 'Dry (−1000 cm)', scenario: { mode: 'rich', soil: 'loam', L: 100, q: 20, dur: 3, T: 24, h0: -1000, bc: 'free', run: 'end' } },
+          { label: '−300 cm', scenario: { mode: 'rich', soil: 'loam', L: 100, q: 20, dur: 3, T: 24, h0: -300, bc: 'free', run: 'end' } },
+          { label: '−100 cm', scenario: { mode: 'rich', soil: 'loam', L: 100, q: 20, dur: 3, T: 24, h0: -100, bc: 'free', run: 'end' } },
+          { label: 'Wet (−30 cm)', scenario: { mode: 'rich', soil: 'loam', L: 100, q: 20, dur: 3, T: 24, h0: -30, bc: 'free', run: 'end' } }],
+        record: ['soil', 'th0', 'tPond', 'cumRunoff', 'front', 'cumDrain'],
+        questions: [
+          { type: 'mc', id: 'a1', predict: true, prompt: 'Compared with the dry start, runoff after the wet start will be…',
+            options: [{ t: 'About the same, because the rain is the same', ok: false }, { t: 'Roughly three times larger', ok: true }, { t: 'Smaller, because wet soil conducts better', ok: false }],
+            explain: () => `Runoff rises from ${LX.ante(-1000).runoff.toFixed(1)} mm to ${LX.ante(-30).runoff.toFixed(1)} mm. Wet soil is more conductive, but it has less empty pore space to fill and a much weaker suction gradient pulling water in.` },
+          { type: 'num', id: 'a2', prompt: 'When does ponding start for the wet start?', unit: 'h',
+            ans: () => LX.ante(-30).tPond, tolAbs: 0.15,
+            explain: a => `After about ${a.toFixed(1)} h, versus ${LX.ante(-1000).tPond.toFixed(1)} h for the dry start.` }
+        ]
+      },
+      {
+        title: 'Where did the water go?',
+        html: `<p>Compare the wetting-front depth and drainage in your table.</p>`,
+        questions: [
+          { type: 'mc', id: 'a3', prompt: 'Why does the wetting front go deeper in the wet case even though less water infiltrates?',
+            options: [{ t: 'Each cm of soil needs less water to wet up, so the same volume reaches further', ok: true }, { t: 'Gravity is stronger in wet soil', ok: false }, { t: 'The wet case has a water table', ok: false }],
+            explain: () => `The front advances by Δθ per cm of depth. Starting at θ = ${LX.V('loam').theta(-30).toFixed(2)} instead of ${LX.V('loam').theta(-1000).toFixed(2)}, the soil needs much less water to reach near saturation, so the front reached the base and ${LX.ante(-30).drain.toFixed(0)} mm drained out.` }
+        ]
+      }
+    ]
+  },
+  // ------------------------------------------------------------------ 6
+  {
+    id: 'irr', title: 'Irrigation set and deep percolation', model: 'Richards', minutes: 25,
+    caseHtml: `A processing-tomato field on <b>sandy loam</b> has an effective root zone of <b>60 cm</b>. The soil is still moist from the last irrigation (h ≈ −50 cm). The irrigator usually applies <b>50 mm</b> per set. How much of that ends up below the roots?`,
+    objectives: ['Track water applied, stored and lost to deep percolation', 'Show that application depth, not rate, controls losses when there is no runoff', 'Size an application to the soil\'s spare storage'],
+    steps: [
+      {
+        title: 'The usual 50 mm set',
+        html: `<p>Load 20 mm/h for 2.5 h (50 mm) on the 60 cm sandy loam and run 72 h. Watch the drainage peak arrive hours after irrigation ends. Record the run.</p>`,
+        scenario: { mode: 'rich', soil: 'sandy_loam', L: 60, q: 20, dur: 2.5, T: 72, h0: -50, bc: 'free' },
+        record: ['soil', 'q', 'dur', 'inf', 'cumDrain', 'storage'],
+        questions: [
+          { type: 'num', id: 'i1', prompt: 'How much water has drained below the root zone after 72 h?', unit: 'mm',
+            ans: () => LX.irr(20, 2.5).drain, tol: 0.05,
+            explain: a => `About ${a.toFixed(0)} mm, ${(a / 50 * 100).toFixed(0)}% of what was applied. Some of this (≈${(LX.V('sandy_loam').K(-50) * 72 * 10).toFixed(1)} mm) would have drained anyway, because the soil was already wet.` }
+        ]
+      },
+      {
+        title: 'Same depth, slower rate',
+        html: `<p>The irrigator proposes halving the rate to 10 mm/h for 5 h, still 50 mm.</p>`,
+        questions: [
+          { type: 'mc', id: 'i2', predict: true, prompt: 'Deep percolation with the slower application will be…',
+            options: [{ t: 'Much smaller, because water has more time to be held', ok: false }, { t: 'About the same', ok: true }, { t: 'Larger', ok: false }],
+            explain: () => `${LX.irr(10, 5).drain.toFixed(1)} mm vs ${LX.irr(20, 2.5).drain.toFixed(1)} mm. With no runoff, the soil keeps roughly the same extra storage either way, so the excess drains regardless of rate. Rate matters for runoff, depth matters for percolation.` }
+        ],
+        tryIt: { label: 'Run 10 mm/h for 5 h', scenario: { mode: 'rich', soil: 'sandy_loam', L: 60, q: 10, dur: 5, T: 72, h0: -50, bc: 'free', run: 'end' } }
+      },
+      {
+        title: 'Right-size the set',
+        html: `<p>Now apply <b>25 mm</b> (20 mm/h for 1.25 h) and record it next to the 50 mm run.</p>`,
+        tryIt: { label: 'Run 25 mm', scenario: { mode: 'rich', soil: 'sandy_loam', L: 60, q: 20, dur: 1.25, T: 72, h0: -50, bc: 'free', run: 'end' } },
+        record: ['soil', 'q', 'dur', 'inf', 'cumDrain', 'storage'],
+        questions: [
+          { type: 'num', id: 'i3', prompt: 'How much drains below the root zone with the 25 mm set?', unit: 'mm',
+            ans: () => LX.irr(20, 1.25).drain, tol: 0.06,
+            explain: a => `About ${a.toFixed(0)} mm. Halving the set cut losses from ${LX.irr(20, 2.5).drain.toFixed(0)} to ${a.toFixed(0)} mm. Storage after 72 h is almost the same in both runs (${LX.irr(20, 1.25).storage.toFixed(0)} vs ${LX.irr(20, 2.5).storage.toFixed(0)} mm): this soil can only hold about ${(LX.irr(20, 2.5).storage - LX.irr(20, 2.5).S0).toFixed(0)} mm more than it started with.` },
+          { type: 'mc', id: 'i4', prompt: 'What is the main lesson for scheduling this field?',
+            options: [{ t: 'Apply slowly to save water', ok: false }, { t: 'Match the set depth to the root zone\'s spare storage; anything beyond it percolates', ok: true }, { t: 'Irrigate more often with larger sets', ok: false }],
+            explain: () => `Water held between the current state and the drained-upper-limit is the "refill" the root zone can take. Applying beyond it mostly leaves the root zone, carrying nitrate with it.` }
+        ]
+      }
+    ]
+  },
+  // ------------------------------------------------------------------ 7
+  {
+    id: 'models', title: 'Choosing the right model', model: 'All three', minutes: 15,
+    caseHtml: `Three models, one soil column. Each is a simplification of the next: Richards' equation reduces to Buckingham–Darcy at steady state, and Buckingham–Darcy reduces to Darcy's law when the soil is saturated. Here you check that in the tool and practise picking a model.`,
+    objectives: ['Verify that Richards converges to the steady Buckingham–Darcy profile', 'Choose the simplest valid model for a field or lab question'],
+    steps: [
+      {
+        title: 'Richards → steady state',
+        html: `<p>Run a sand column under a constant 5 mm/h for 100 h with Richards, then load the same case in Buckingham–Darcy. Record both.</p>`,
+        presets: [
+          { label: 'Richards, 100 h', scenario: { mode: 'rich', soil: 'sand', L: 100, q: 5, dur: 100, T: 100, h0: -300, bc: 'free', run: 'end' } },
+          { label: 'Buckingham–Darcy', scenario: { mode: 'buck', soil: 'sand', L: 100, q: 5, bc: 'free' } }],
+        record: ['model', 'soil', 'q', 'cumDrain', 'storage', 'thTop'],
+        questions: [
+          { type: 'mc', id: 'm1', prompt: 'After 100 h, how does the Richards profile compare with the Buckingham–Darcy profile?',
+            options: [{ t: 'They match: drainage = inflow and θ is the same', ok: true }, { t: 'Richards is always wetter', ok: false }, { t: 'They cannot be compared', ok: false }],
+            explain: () => `Both give θ ≈ ${LX.buck('sand', 100, 5, 'free').pts[0].theta.toFixed(3)} and drainage = 5 mm/h. Once ∂θ/∂t = 0, Richards' equation is Buckingham–Darcy.` }
+        ]
+      },
+      {
+        title: 'Pick the model',
+        html: `<p>For each question, choose the simplest model that answers it.</p>`,
+        questions: [
+          { type: 'mc', id: 'm2', prompt: 'Estimating K<sub>s</sub> from a constant-head lab test on a saturated core.',
+            options: [{ t: 'Darcy', ok: true }, { t: 'Buckingham–Darcy', ok: false }, { t: 'Richards', ok: false }],
+            explain: () => `Saturated, steady flow: Darcy's law is exact.` },
+          { type: 'mc', id: 'm3', prompt: 'The long-term water content under a drip line running at a constant rate.',
+            options: [{ t: 'Darcy', ok: false }, { t: 'Buckingham–Darcy', ok: true }, { t: 'Richards', ok: false }],
+            explain: () => `Unsaturated but steady: K(h) = q under unit gradient.` },
+          { type: 'mc', id: 'm4', prompt: 'Runoff and drainage during and after a 3-hour storm.',
+            options: [{ t: 'Darcy', ok: false }, { t: 'Buckingham–Darcy', ok: false }, { t: 'Richards', ok: true }],
+            explain: () => `Water content changes with time and depth, so only the transient Richards equation captures ponding, runoff and redistribution.` }
+        ]
+      }
+    ]
+  }
+];
+
+</script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const panel = $('learn'), btn = $('learnBtn');
+  const KEY = 'soilflow-learn-v1';
+  let S = { open: true, view: 'list', li: 0, si: 0, ans: {}, rec: {}, done: {} };
+  try { const saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) S = Object.assign(S, saved); } catch (e) {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const sig = (v, s = 3) => {
+    if (typeof v === 'string') return esc(v);
+    if (v == null || !isFinite(v)) return '—';
+    if (v === 0) return '0';
+    const a = Math.abs(v); if (a >= 1000) return v.toFixed(0);
+    return v.toFixed(Math.min(4, Math.max(0, s - 1 - Math.floor(Math.log10(a)))));
+  };
+
+  function setOpen(o) {
+    S.open = o; save();
+    panel.hidden = !o;
+    document.body.classList.toggle('learning', o);
+    btn.setAttribute('aria-expanded', o ? 'true' : 'false');
+    btn.textContent = o ? 'Close lessons' : 'Learn';
+    if (o) render();
+    window.dispatchEvent(new Event('resize'));
+  }
+  btn.addEventListener('click', () => setOpen(!S.open));
+
+  function qCount(L) { return L.steps.reduce((n, s) => n + (s.questions || []).length, 0); }
+  function qDone(L) { return L.steps.reduce((n, s) => n + (s.questions || []).filter(q => S.ans[q.id] && (S.ans[q.id].ok || S.ans[q.id].shown)).length, 0); }
+
+  function render() {
+    if (S.view === 'list') return renderList();
+    renderLesson();
+  }
+
+  function renderList() {
+    panel.innerHTML = `
+      <div class="lp-head"><h2>Learning module</h2><button class="lp-x" data-act="close" aria-label="Close lessons">✕</button></div>
+      <p class="lp-intro">Seven case studies that build from saturated flow to transient infiltration. Each step sets up the simulator for you. Make your prediction, run the model, then check your answers. Your progress and recorded results stay in this browser.</p>
+      <ol class="lp-list">${LESSONS.map((L, i) => {
+        const n = qCount(L), d = qDone(L);
+        return `<li><button class="lp-item" data-open="${i}">
+          <span class="lp-n">${i + 1}</span>
+          <span class="lp-body"><span class="lp-t">${L.title}</span>
+          <span class="lp-meta">${L.model} · ${L.minutes} min · ${d}/${n} answered${S.done[L.id] ? ' · <b>complete</b>' : ''}</span>
+          <span class="lp-bar"><i style="width:${n ? 100 * d / n : 0}%"></i></span></span></button></li>`;
+      }).join('')}</ol>
+      <button class="btn lp-reset" data-act="resetAll">Reset all progress</button>`;
+  }
+
+  function renderLesson() {
+    const L = LESSONS[S.li], st = L.steps[S.si], last = S.si === L.steps.length - 1;
+    const recKey = L.id + ':' + S.si;
+    panel.innerHTML = `
+      <div class="lp-head"><button class="lp-back" data-act="list">← All lessons</button><span class="lp-meta">Lesson ${S.li + 1} of ${LESSONS.length}</span><button class="lp-x" data-act="close" aria-label="Close lessons">✕</button></div>
+      <h2 class="lp-title">${L.title}</h2>
+      <div class="lp-chips"><span class="chip">${L.model}</span><span class="chip">${L.minutes} min</span></div>
+      <div class="lp-case"><span class="lp-k">Case</span><div>${L.caseHtml}</div></div>
+      <details class="lp-obj"><summary>Learning objectives</summary><ul>${L.objectives.map(o => `<li>${o}</li>`).join('')}</ul></details>
+      <nav class="lp-steps" aria-label="Steps">${L.steps.map((s, i) => `<button data-step="${i}" aria-current="${i === S.si ? 'step' : 'false'}" title="${esc(s.title)}">${i + 1}</button>`).join('')}</nav>
+      <h3 class="lp-st">Step ${S.si + 1}: ${st.title}</h3>
+      <div class="lp-html">${st.html}</div>
+      <div class="lp-actions">
+        ${st.scenario ? `<button class="btn primary" data-act="setup">Set up simulator</button>` : ''}
+        ${(st.presets || []).map((p, i) => `<button class="btn" data-preset="${i}">${p.label}</button>`).join('')}
+        ${st.tryIt ? `<button class="btn" data-act="try">${st.tryIt.label}</button>` : ''}
+      </div>
+      ${st.record ? renderRecord(recKey) : ''}
+      ${(st.questions || []).map(renderQ).join('')}
+      <div class="lp-nav">
+        <button class="btn" data-act="prev" ${S.si === 0 ? 'disabled' : ''}>Previous step</button>
+        <button class="btn primary" data-act="${last ? 'finish' : 'next'}">${last ? 'Finish lesson' : 'Next step'}</button>
+      </div>`;
+  }
+
+  function renderRecord(key) {
+    const rows = S.rec[key] || [];
+    const cols = rows.length ? rows[0].cols : null;
+    return `<div class="lp-rec">
+      <div class="lp-rec-h"><span class="lp-k">Your results</span>
+        <span class="lp-rec-b"><button class="btn small primary" data-act="record">Record this run</button>
+        <button class="btn small" data-act="copy" ${rows.length ? '' : 'disabled'}>Copy table</button>
+        <button class="btn small" data-act="clearRec" ${rows.length ? '' : 'disabled'}>Clear</button></span></div>
+      ${rows.length ? `<div class="lp-tbl"><table><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map(r => `<tr>${r.vals.map(v => `<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
+        : `<p class="lp-empty">Run a scenario, then press Record. Each run adds a row so you can compare.</p>`}
+      <p class="lp-note" id="recNote" hidden></p>
+    </div>`;
+  }
+
+  function renderQ(q) {
+    const a = S.ans[q.id] || {};
+    const solved = a.ok || a.shown;
+    let body = '';
+    if (q.type === 'mc') {
+      body = `<div class="lp-opts" role="radiogroup">${q.options.map((o, i) => {
+        const cls = a.choice === i ? (q.predict && !a.revealed ? 'picked' : (o.ok ? 'right' : 'wrong')) : (solved && o.ok && !q.predict ? 'right' : '');
+        return `<label class="lp-opt ${cls}"><input type="radio" name="q_${q.id}" value="${i}" ${a.choice === i ? 'checked' : ''}> <span>${o.t}</span></label>`;
+      }).join('')}</div>
+      <div class="lp-qa"><button class="btn small primary" data-check="${q.id}">${q.predict ? 'Lock in prediction' : 'Check'}</button></div>`;
+    } else {
+      body = `<div class="lp-num"><input type="number" step="any" id="in_${q.id}" value="${a.val != null ? esc(a.val) : ''}" aria-label="Your answer"><span>${q.unit}</span>
+        <button class="btn small primary" data-check="${q.id}">Check</button>
+        ${a.tries >= 2 && !solved ? `<button class="btn small" data-show="${q.id}">Show answer</button>` : ''}</div>`;
+    }
+    let fb = '';
+    if (a.tried) {
+      if (q.type === 'mc' && q.predict) {
+        const ok = q.options[a.choice] && q.options[a.choice].ok;
+        fb = `<div class="lp-fb ${ok ? 'ok' : 'no'}"><b>${ok ? 'Your prediction was right.' : 'Not what the model shows.'}</b> ${q.explain()}</div>`;
+      } else if (a.ok) fb = `<div class="lp-fb ok"><b>Correct.</b> ${q.explain(q.ans ? q.ans() : null)}</div>`;
+      else if (a.shown) fb = `<div class="lp-fb no"><b>Answer: ${sig(q.ans(), 3)} ${q.unit}.</b> ${q.explain(q.ans())}</div>`;
+      else fb = `<div class="lp-fb no"><b>Not quite.</b> ${q.type === 'num' ? 'Check the readouts and units, then try again.' : 'Think about it once more, or run the scenario again.'}</div>`;
+    }
+    return `<div class="lp-q" id="q_${q.id}">
+      ${q.predict ? '<span class="chip warn">Predict first</span>' : ''}
+      <p class="lp-qp">${q.prompt}</p>
+      ${body}${fb}</div>`;
+  }
+
+  function findQ(id) {
+    for (const L of LESSONS) for (const s of L.steps) for (const q of (s.questions || [])) if (q.id === id) return q;
+  }
+
+  function check(id) {
+    const q = findQ(id), a = S.ans[id] = S.ans[id] || {};
+    if (q.type === 'mc') {
+      const sel = panel.querySelector(`input[name="q_${id}"]:checked`);
+      if (!sel) return flash(id, 'Pick an option first.');
+      a.choice = +sel.value; a.tried = true; a.ok = !!q.options[a.choice].ok;
+      if (q.predict) { a.revealed = true; a.shown = true; }
+    } else {
+      const raw = panel.querySelector('#in_' + id).value.trim();
+      const v = parseFloat(raw.replace(',', '.'));
+      if (!isFinite(v)) return flash(id, 'Enter a number.');
+      const ans = q.ans();
+      const tol = q.tolAbs != null ? q.tolAbs : Math.abs(ans) * (q.tol || 0.05);
+      a.val = raw; a.tried = true; a.tries = (a.tries || 0) + 1; a.ok = Math.abs(v - ans) <= tol;
+    }
+    save(); renderLesson(); keep(id);
+  }
+  function flash(id, msg) {
+    const el = panel.querySelector('#q_' + id + ' .lp-fb.tmp') || document.createElement('div');
+    el.className = 'lp-fb no tmp'; el.textContent = msg;
+    panel.querySelector('#q_' + id).appendChild(el);
+  }
+  function keep(id) { const el = panel.querySelector('#q_' + id); if (el) el.scrollIntoView({ block: 'nearest' }); }
+
+  function setup(sc) {
+    SF.load(sc);
+    if (window.matchMedia('(max-width: 1099px)').matches) {
+      const stage = document.querySelector('.stage'); if (stage) stage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function record() {
+    const L = LESSONS[S.li], st = L.steps[S.si], key = L.id + ':' + S.si;
+    const snap = SF.snapshot();
+    const cols = st.record.map(k => snap[k] ? snap[k].label + (snap[k].unit ? ` (${snap[k].unit})` : '') : k);
+    const vals = st.record.map(k => snap[k] ? sig(snap[k].v, 3) : '—');
+    (S.rec[key] = S.rec[key] || []).push({ cols, vals });
+    save(); renderLesson();
+    if (!SF.isDone()) {
+      const n = panel.querySelector('#recNote');
+      if (n) { n.hidden = false; n.textContent = `This run had not finished (t = ${sig(snap.t ? snap.t.v : 0, 3)} h). Use Skip to end for final values.`; }
+    }
+  }
+
+  function copyTable() {
+    const L = LESSONS[S.li], rows = S.rec[L.id + ':' + S.si] || [];
+    if (!rows.length) return;
+    const tsv = [rows[0].cols.join('\t')].concat(rows.map(r => r.vals.join('\t'))).join('\n');
+    const done = ok => { const n = panel.querySelector('#recNote'); if (n) { n.hidden = false; n.textContent = ok ? 'Copied. Paste into a spreadsheet.' : 'Copy was blocked here. Select the table and copy it manually.'; } };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(tsv).then(() => done(true), () => done(false));
+    else done(false);
+  }
+
+  panel.addEventListener('click', e => {
+    const t = e.target.closest('button'); if (!t) return;
+    const d = t.dataset;
+    if (d.open != null) { S.view = 'lesson'; S.li = +d.open; S.si = 0; save(); renderLesson(); panel.scrollTop = 0; return; }
+    if (d.step != null) { S.si = +d.step; save(); renderLesson(); panel.scrollTop = 0; return; }
+    if (d.preset != null) return setup(LESSONS[S.li].steps[S.si].presets[+d.preset].scenario);
+    if (d.check) return check(d.check);
+    if (d.show) { S.ans[d.show].shown = true; save(); renderLesson(); keep(d.show); return; }
+    const L = LESSONS[S.li];
+    switch (d.act) {
+      case 'close': return setOpen(false);
+      case 'list': S.view = 'list'; save(); renderList(); panel.scrollTop = 0; return;
+      case 'setup': return setup(L.steps[S.si].scenario);
+      case 'try': return setup(L.steps[S.si].tryIt.scenario);
+      case 'prev': S.si = Math.max(0, S.si - 1); save(); renderLesson(); panel.scrollTop = 0; return;
+      case 'next': S.si = Math.min(L.steps.length - 1, S.si + 1); save(); renderLesson(); panel.scrollTop = 0; return;
+      case 'finish': S.done[L.id] = true; S.view = 'list'; save(); renderList(); panel.scrollTop = 0; return;
+      case 'record': return record();
+      case 'copy': return copyTable();
+      case 'clearRec': delete S.rec[L.id + ':' + S.si]; save(); renderLesson(); return;
+      case 'resetAll': S.ans = {}; S.rec = {}; S.done = {}; save(); renderList(); return;
+    }
+  });
+  panel.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.matches('.lp-num input')) check(e.target.id.slice(3));
+  });
+
+  setOpen(!!S.open);
+})();
+
+</script>
+
+</body></html>
