@@ -172,6 +172,52 @@ input[type="range"] { width: 100%; accent-color: var(--water); }
 .lp-fb.ok { border-color: var(--good); }
 .lp-fb.no { border-color: var(--warn); }
 .lp-nav { display: flex; justify-content: space-between; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
+
+/* ---- Tutor panel ---- */
+.tutor-btn { font: 600 13px var(--f-ui); background: transparent; color: var(--ink); border: 1.5px solid var(--ink); border-radius: 999px; padding: 6.5px 15px; cursor: pointer; }
+.tutor-btn[aria-expanded="true"] { background: var(--water-soft); border-color: var(--water); color: var(--water); }
+.tutor { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: 390px; max-width: calc(100vw - 32px); height: min(620px, calc(100vh - 32px)); z-index: 30;
+  display: flex; flex-direction: column; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 18px 50px rgba(0,0,0,.22); overflow: hidden; font-size: 14px; }
+@media (min-width: 1100px) { body.learning .tutor { right: 436px; } }
+@media (max-width: 600px) { .tutor { right: 0; bottom: 0; width: 100vw; max-width: 100vw; height: 100%; border-radius: 0; padding-top: env(safe-area-inset-top, 0px); } }
+.tt-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.tt-head h2 { margin: 0; font: 700 16px var(--f-ui); }
+.tt-sub { font: 500 12px var(--f-label); color: var(--muted); letter-spacing: .02em; }
+.tt-tools { display: flex; gap: 2px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.tt-tool, .tt-x { font: 600 12px var(--f-ui); background: none; border: 0; color: var(--water); cursor: pointer; padding: 5px 7px; border-radius: 6px; }
+.tt-x { color: var(--muted); font-size: 14px; }
+.tt-tool:hover, .tt-x:hover { background: var(--panel-2); }
+.tt-log { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.tt-msg { max-width: 92%; padding: 9px 12px; border-radius: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.tt-msg p { margin: 0 0 6px; } .tt-msg p:last-child { margin-bottom: 0; }
+.tt-msg ul, .tt-msg ol { margin: 4px 0 6px; padding-left: 20px; } .tt-msg li { margin: 2px 0; }
+.tt-msg code { font: 12px var(--f-num); background: var(--panel); padding: 1px 4px; border-radius: 4px; }
+.tt-msg pre { background: var(--panel); padding: 8px; border-radius: 6px; overflow-x: auto; margin: 4px 0; }
+.tt-msg .tt-h { font-weight: 700; }
+.tt-msg.model { align-self: flex-start; background: var(--panel-2); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.tt-msg.user { align-self: flex-end; background: var(--water); color: #fff; border-bottom-right-radius: 4px; }
+.tt-msg.err { border-color: var(--warn); background: var(--warn-soft); }
+.tt-typing { color: var(--muted); font-style: italic; }
+.tt-chips { display: flex; gap: 6px; overflow-x: auto; padding: 0 14px 8px; scrollbar-width: thin; }
+.tt-chip { flex: none; font: 500 12px var(--f-ui); background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; cursor: pointer; white-space: nowrap; }
+.tt-chip:hover { border-color: var(--water); color: var(--water); }
+.tt-form { display: flex; gap: 8px; padding: 8px 14px; border-top: 1px solid var(--line); align-items: flex-end; }
+.tt-form textarea { flex: 1; min-width: 0; resize: none; font: 14px var(--f-ui); background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; max-height: 120px; }
+.tt-form textarea:focus-visible { outline: 2px solid var(--water); outline-offset: 1px; }
+.tt-foot { margin: 0; padding: 0 14px 10px; font-size: 11px; color: var(--muted); }
+.tt-set { padding: 14px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.tt-set fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.tt-set legend { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+.tt-radio, .tt-check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.4; }
+.tt-radio input, .tt-check input { margin-top: 3px; accent-color: var(--water); }
+.tt-radio small, .tt-field small { color: var(--muted); font-weight: 400; }
+.tt-field { display: flex; flex-direction: column; gap: 5px; }
+.tt-field label { font-weight: 600; font-size: 13px; }
+.tt-field input[type="text"], .tt-field input[type="password"] { font: 13px var(--f-num); background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 8px; width: 100%; }
+.tt-help, .tt-note { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.tt-help a { color: var(--water); }
+.tt-row { display: flex; gap: 8px; }
+.lp-hint { margin-left: 4px; }
 footer { color: var(--muted); font-size: 12px; max-width: 110ch; }
 footer b { font-weight: 600; color: var(--ink); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -1180,11 +1226,54 @@ function createRichards(o) {
     rebuild();
     if (sc.run === 'end') { st.fast = true; syncTransport(); }
   }
-  window.SF = { load, snapshot, isDone: () => st.mode === 'buck' || isDone(), state: () => ({ mode: st.mode, soil: st.soil, L: st.L, q: st.qmm, bc: st.bc, dur: st.dur, T: st.T }) };
+  // Plain-text summary of the live simulator for the tutor (no answer keys)
+  function contextText() {
+    const p = st.p, L = [];
+    const modeName = { darcy: 'Darcy (saturated column)', buck: 'Buckingham–Darcy (steady state)', rich: 'Richards (transient, unsaturated)' }[st.mode];
+    const ksmm = p.Ks / 2.4;
+    L.push(`Model tab: ${modeName}`);
+    L.push(`Soil: ${st.custom ? 'Custom soil' : SOILS[st.soil].name} — θr = ${p.tr}, θs = ${p.ts} m³/m³, α = ${p.a} 1/cm, n = ${p.n}, Ks = ${p.Ks} cm/day (${sig(ksmm, 3)} mm/h)`);
+    L.push(`Column height L = ${st.L} cm; incoming flow = ${sig(st.qmm, 3)} mm/h (= ${sig(st.qmm / ksmm, 2)} × Ks)`);
+    L.push(`Head/suction display units: ${hu === 'kpa' ? 'kPa' : 'metres of water'} (1 cm water = 0.0981 kPa)`);
+    if (st.mode === 'darcy') {
+      L.push(`Overflow rim (max ponding) = ${st.Hmax} cm; simulated time = ${st.T} h; current time t = ${sig(st.simT, 3)} h`);
+      if (darcy.supplyLimited) L.push('Status: inflow ≤ Ks, so the column cannot stay saturated (supply-limited warning shown).');
+      else L.push(`Equilibrium ponding without a rim would be ${sig(darcy.Heq, 3)} cm; steady state reached after ≈ ${sig(darcy.tSteady, 3)} h.`);
+    } else if (st.mode === 'buck') {
+      L.push(`Bottom boundary: ${st.bc === 'wt' ? 'water table (h = 0 at base)' : 'free drainage (unit gradient)'}; overflow rim = ${st.Hmax} cm`);
+      L.push(`Unit-gradient head where K(h) = q: h = ${sig(buck.hUnit, 3)} cm${buck.saturated ? ' (inflow ≥ Ks, column saturated)' : ''}`);
+    } else {
+      const h0 = vg.hOfTheta(st.th0);
+      L.push(`Bottom boundary: ${st.bc === 'wt' ? 'water table (h = 0 at base; column starts at hydrostatic equilibrium, initial-θ slider unused)' : 'free drainage (unit gradient)'}`);
+      if (st.bc !== 'wt') L.push(`Initial condition: θ0 = ${sig(st.th0, 3)} m³/m³, h0 = ${sig(h0, 3)} cm (suction ${sig(-h0 * 0.0980665, 3)} kPa)`);
+      L.push(`Inflow duration = ${st.dur} h; simulated time = ${st.T} h; current time t = ${sig(rich.t, 3)} h (${rich.t < st.dur ? 'inflow on' : 'inflow off, redistribution'}); surface boundary now: ${rich.top === 'head' ? 'ponded (saturated surface, excess runs off)' : 'flux'}${rich.failed ? '; SOLVER FAILED TO CONVERGE' : ''}`);
+      const s = rich.series;
+      if (s.length > 1) {
+        const pk = s.reduce((a, b) => b.qDrain > a.qDrain ? b : a);
+        if (pk.qDrain * 10 > 0.01) L.push(`Drainage peak so far: ${sig(pk.qDrain * 10, 3)} mm/h at t = ${sig(pk.t, 3)} h`);
+      }
+    }
+    L.push(`Playback: ${st.mode === 'buck' ? 'steady state (no time)' : (isDone() ? 'finished' : (st.playing ? 'running' : 'paused'))}`);
+    const snap = snapshot();
+    L.push('Readouts: ' + Object.keys(snap).filter(k => !['model', 'soil', 'L', 'q', 'bc', 'tPond', 'iEnd'].includes(k)) // tPond/iEnd are read off the chart in the lessons, so not shared
+      .map(k => `${snap[k].label} = ${typeof snap[k].v === 'number' ? sig(snap[k].v, 3) : snap[k].v}${snap[k].unit ? ' ' + snap[k].unit : ''}`).join('; '));
+    // profile samples
+    let prof = [];
+    if (st.mode === 'darcy') prof = darcy.profileAt(st.simT).map(r => ({ z: r.z, th: r.theta, h: r.h }));
+    else if (st.mode === 'buck') prof = buck.pts.map(r => ({ z: r.z, th: r.theta, h: r.h }));
+    else prof = Array.from(rich.h, (hh, i) => ({ z: rich.z[i], th: vg.theta(hh), h: hh }));
+    const at = f => prof.reduce((a, b) => Math.abs(b.z - f * st.L) < Math.abs(a.z - f * st.L) ? b : a);
+    L.push('Profile (depth: θ, pressure head h): ' + [0, 0.1, 0.25, 0.5, 0.75, 1].map(f => { const r = at(f); return `${sig(r.z, 3)} cm: θ ${r.th.toFixed(3)}, h ${sig(r.h, 3)} cm`; }).join(' | '));
+    const ban = $('banner');
+    if (ban && !ban.hidden && ban.textContent.trim()) L.push('Warning banner shown: ' + ban.textContent.trim());
+    return L.join('\n');
+  }
+  window.SF = { load, snapshot, context: contextText, isDone: () => st.mode === 'buck' || isDone(), state: () => ({ mode: st.mode, soil: st.soil, L: st.L, q: st.qmm, bc: st.bc, dur: st.dur, T: st.T }) };
   renderParams();
   rebuild();
   requestAnimationFrame(frame);
 })();
+
 
 </script>
 <script>
@@ -1540,6 +1629,7 @@ const LESSONS = [
   }
 ];
 
+
 </script>
 <script>
 (function () {
@@ -1641,11 +1731,11 @@ const LESSONS = [
         const cls = a.choice === i ? (q.predict && !a.revealed ? 'picked' : (o.ok ? 'right' : 'wrong')) : (solved && o.ok && !q.predict ? 'right' : '');
         return `<label class="lp-opt ${cls}"><input type="radio" name="q_${q.id}" value="${i}" ${a.choice === i ? 'checked' : ''}> <span>${o.t}</span></label>`;
       }).join('')}</div>
-      <div class="lp-qa"><button class="btn small primary" data-check="${q.id}">${q.predict ? 'Lock in prediction' : 'Check'}</button></div>`;
+      <div class="lp-qa"><button class="btn small primary" data-check="${q.id}">${q.predict ? 'Lock in prediction' : 'Check'}</button>${hintBtn(q, solved)}</div>`;
     } else {
       body = `<div class="lp-num"><input type="number" step="any" id="in_${q.id}" value="${a.val != null ? esc(a.val) : ''}" aria-label="Your answer"><span>${q.unit}</span>
         <button class="btn small primary" data-check="${q.id}">Check</button>
-        ${a.tries >= 2 && !solved ? `<button class="btn small" data-show="${q.id}">Show answer</button>` : ''}</div>`;
+        ${a.tries >= 2 && !solved ? `<button class="btn small" data-show="${q.id}">Show answer</button>` : ''}${hintBtn(q, solved)}</div>`;
     }
     let fb = '';
     if (a.tried) {
@@ -1661,6 +1751,26 @@ const LESSONS = [
       <p class="lp-qp">${q.prompt}</p>
       ${body}${fb}</div>`;
   }
+
+  function hintBtn(q, solved) {
+    return window.SFTutor && !solved ? `<button class="btn small lp-hint" data-hint="${q.id}">Ask the tutor for a hint</button>` : '';
+  }
+  const strip = h => String(h).replace(/<sub>(.*?)<\/sub>/g, '$1').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+  // Lesson context for the tutor: what the student sees, never the answer keys or explanations
+  function lessonContext() {
+    if (!S.open || S.view !== 'lesson') return '';
+    const L = LESSONS[S.li], st = L.steps[S.si], out = [];
+    out.push(`Lesson ${S.li + 1} of ${LESSONS.length}: "${L.title}" (${L.model})`);
+    out.push('Case: ' + strip(L.caseHtml));
+    out.push(`Current step ${S.si + 1} of ${L.steps.length}: "${st.title}" — ${strip(st.html)}`);
+    (st.questions || []).forEach((q, i) => {
+      const a = S.ans[q.id] || {};
+      const status = a.ok ? 'answered correctly' : a.shown ? 'answer revealed' : a.tried ? `attempted ${a.tries || 1}×, not yet correct` + (q.type === 'num' && a.val ? ` (last entry ${a.val} ${q.unit})` : '') : 'not attempted';
+      out.push(`Question ${i + 1}${q.predict ? ' (prediction)' : ''}: ${strip(q.prompt)}${q.type === 'num' ? ` [numeric, unit ${q.unit}]` : ' Options: ' + q.options.map((o, k) => `(${String.fromCharCode(97 + k)}) ${strip(o.t)}`).join(' ')} — status: ${status}`);
+    });
+    return out.join('\n');
+  }
+  window.SFLearn = { context: lessonContext, rerender: () => { if (S.open) render(); } };
 
   function findQ(id) {
     for (const L of LESSONS) for (const s of L.steps) for (const q of (s.questions || [])) if (q.id === id) return q;
@@ -1726,6 +1836,7 @@ const LESSONS = [
     if (d.step != null) { S.si = +d.step; save(); renderLesson(); panel.scrollTop = 0; return; }
     if (d.preset != null) return setup(LESSONS[S.li].steps[S.si].presets[+d.preset].scenario);
     if (d.check) return check(d.check);
+    if (d.hint) { const q = findQ(d.hint); if (window.SFTutor) window.SFTutor.hint(strip(q.prompt)); return; }
     if (d.show) { S.ans[d.show].shown = true; save(); renderLesson(); keep(d.show); return; }
     const L = LESSONS[S.li];
     switch (d.act) {
@@ -1749,6 +1860,346 @@ const LESSONS = [
   setOpen(!!S.open);
 })();
 
-</script>
 
+</script>
+<script>
+// ===== TUTOR (Gemini) =====
+// Instructor settings. Fill in proxyUrl after deploying tutor-worker.js (see the setup notes)
+// so students can use the tutor without their own API key. Leave it empty to require each
+// student to paste their own Gemini API key (stored only in their browser).
+const TUTOR_CONFIG = {
+  proxyUrl: '',                       // e.g. 'https://soilflow-tutor.<your-subdomain>.workers.dev'
+  // Built-in key: students connect automatically. Anyone who opens the page source can copy it,
+  // so restrict it in Google Cloud (HTTP referrers + Generative Language API only) and set a quota.
+  apiKey: 'AQ.Ab8RN6JViB0NTRXEVxHOUG6kJ7hLiARVkojZpyJMqt3GwJAhRw',
+  defaultModel: 'gemini-3.5-flash-lite',
+  models: ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-2.5-flash'],
+  maxTurns: 16,                       // conversation turns sent with each request
+  maxOutputTokens: 2048
+};
+
+(function () {
+  const $ = id => document.getElementById(id);
+  const KEY = 'soilflow-tutor-v1';
+  const API = 'https://generativelanguage.googleapis.com/v1beta/models/';
+  const DEF_CONN = TUTOR_CONFIG.proxyUrl ? 'proxy' : (TUTOR_CONFIG.apiKey ? 'builtin' : 'key');
+  let cfg = { conn: DEF_CONN, apiKey: '', classCode: '', model: TUTOR_CONFIG.defaultModel, share: true, open: false };
+  try { Object.assign(cfg, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+  if ((cfg.conn === 'proxy' && !TUTOR_CONFIG.proxyUrl) || (cfg.conn === 'builtin' && !TUTOR_CONFIG.apiKey) || (cfg.conn === 'key' && !cfg.apiKey)) cfg.conn = DEF_CONN;
+  const saveCfg = () => { try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch (e) {} };
+  let msgs = [];                      // {role:'user'|'model', text}
+  try { msgs = JSON.parse(sessionStorage.getItem(KEY + '-chat') || '[]'); } catch (e) {}
+  const saveChat = () => { try { sessionStorage.setItem(KEY + '-chat', JSON.stringify(msgs.slice(-40))); } catch (e) {} };
+  let busy = false, ctrl = null, view = 'chat';
+
+  // ---------------------------------------------------------------- system prompt
+  const SYSTEM = `You are the SoilFlow Tutor, a teaching assistant built into "SoilFlow Column", a browser simulator of one-dimensional water flow through a soil column, developed by the UC Davis Advanced Irrigation Lab. Your users are undergraduate and graduate students in soil physics, hydrology and irrigation engineering.
+
+HOW TO TEACH
+- Be a Socratic tutor. Lead with a guiding question or a hint, point to the exact readout, chart or control to look at, and name the relevant equation. Let the student do the reasoning.
+- For the lesson questions listed in the LESSON CONTEXT, never state the final number or the correct option, even if asked directly or told it is "just to check". Escalate gradually instead: (1) concept hint, (2) which readout/equation to use, (3) the equation with the student's own inputs substituted and only the last arithmetic step left. If the student shares an answer, say whether their reasoning is on track and why, without revealing the key.
+- For free exploration (anything not one of the listed lesson questions), answer directly and clearly, then suggest one experiment in the simulator that would confirm it.
+- Use the CURRENT SIMULATOR STATE to make answers specific ("your loam column at 20 mm/h is ponding because…"). Quote numbers from it rather than inventing them. If the state does not contain what you need, tell the student which control or readout to check.
+- Keep answers short: usually under 150 words. Offer to go deeper rather than writing long essays.
+- Write plain text with Unicode symbols (θ, θs, Ks, ∂θ/∂t, ΔH, ≈, ×). Do not use LaTeX or dollar signs. Bullet points and **bold** are fine. No tables longer than 5 rows.
+- If a question is unrelated to soil water, hydrology, irrigation or this app, briefly say you can only help with SoilFlow Column and soil-water topics.
+- You can be wrong. When unsure, say so and suggest how to check it in the simulator.
+
+WHAT THE APP DOES (be consistent with this implementation)
+- Soil hydraulic properties: van Genuchten (1980) retention with Mualem (1976) conductivity, Vogel et al. (2001) air-entry modification with hs = −2 cm. Parameters from Carsel & Parrish (1988) for 12 USDA textures, editable (θr, θs, α in 1/cm, n, Ks entered in cm/day and also shown in mm/h). Editing any value creates a "Custom" soil.
+- Conventions: depth z positive downward from the soil surface; total head H = h + elevation above the outlet (datum at column base); fluxes positive downward in mm/h; storage in mm; pressure head and suction (−h) shown in kPa or metres of water via the "Head units" toggle (1 m water = 9.81 kPa); ponding depth in cm.
+- Darcy tab: saturated column (θ = θs, K = Ks), free outlet at the base (h = 0). q = Ks·(L + Hp)/L. If inflow > Ks a pond builds (dHp/dt = qin − q) until q = inflow or the pond reaches the "Max ponding (overflow rim)", after which the excess overflows (reported as overflow runoff). If inflow ≤ Ks the column cannot stay saturated and a warning says so. Charts: θ profile, pressure/total head profile, drainage/inflow/overflow/ponding versus time.
+- Buckingham–Darcy tab: steady unsaturated flow, q = −K(h)·∂H/∂z. Free drainage base: unit gradient everywhere, uniform h where K(h) = q. Water-table base (h = 0): h found by integrating dh/dz = q/K(h) − 1 upward from h = 0. If inflow ≥ Ks the column saturates and behaves as Darcy (pond up to the rim, excess = runoff). Third chart: K(h) versus suction (log–log) with the operating point and field capacity (33 kPa) / wilting point (1500 kPa) reference lines.
+- Richards tab: ∂θ/∂t = ∂/∂z[K(h)(∂h/∂z − 1)], mixed form, implicit finite differences with modified Picard iteration (Celia et al. 1990), adaptive time step. Inputs: initial water content (uniform), inflow rate and duration, simulated time, bottom boundary (free drainage or water table; with a water table the column starts at hydrostatic equilibrium and the initial-θ slider is not used). The surface switches from flux to ponded head (h = 0) when it saturates; water that cannot infiltrate is counted as runoff immediately (no surface storage). Outputs: drainage and infiltration rates, cumulative infiltration/drainage/runoff, storage, wetting-front depth (deepest point wetter than θ0 + 2% of θs − θr), mass-balance error. Charts: θ profile snapshots every 1/6 of the run plus "now", head profile, fluxes and cumulative totals versus time. Negative drainage over a water table = capillary rise; positive = recharge to the water table.
+- Layout: inputs on the left; animated column in the middle (rain, ponding, θ colour bar, drips into a beaker showing cumulative drainage); readout cards and three charts on the right; transport buttons Pause/Play, Restart, Skip to end, speed. A "Learn" panel has seven guided case studies with questions and a "Record this run" results table.
+- Not modelled: evaporation, root water uptake, hysteresis, layered or heterogeneous soil, preferential flow, air entrapment, temperature effects, surface ponding storage in the Richards tab, swelling/shrinking.`;
+
+  function buildSystem() {
+    let s = SYSTEM;
+    if (cfg.share) {
+      try { s += '\n\nCURRENT SIMULATOR STATE (live, updated every message)\n' + window.SF.context(); } catch (e) {}
+      try { const lc = window.SFLearn && window.SFLearn.context(); if (lc) s += '\n\nLESSON CONTEXT (what the student currently sees in the Learn panel)\n' + lc; } catch (e) {}
+    } else s += '\n\nThe student has turned off sharing of the simulator state. Ask them for the settings and readouts you need.';
+    return s;
+  }
+  const isG3 = m => /^gemini-([3-9]|\d\d)/.test(m);
+  function requestBody() {
+    // drop local error notes and the user turns that failed, so roles alternate cleanly
+    const clean = msgs.filter((m, i) => !m.err && !(m.role === 'user' && msgs[i + 1] && msgs[i + 1].err));
+    const contents = clean.slice(-TUTOR_CONFIG.maxTurns).map(m => ({ role: m.role, parts: [{ text: m.text }] }));
+    while (contents.length && contents[0].role !== 'user') contents.shift();
+    const gen = { maxOutputTokens: TUTOR_CONFIG.maxOutputTokens };
+    if (isG3(cfg.model)) gen.thinkingConfig = { thinkingLevel: 'low' };
+    return { model: cfg.model, systemInstruction: { parts: [{ text: buildSystem() }] }, contents, generationConfig: gen };
+  }
+
+  // ---------------------------------------------------------------- network
+  async function stream(onText) {
+    const body = requestBody();
+    let url, headers = { 'Content-Type': 'application/json' };
+    if (cfg.conn === 'proxy') {
+      url = TUTOR_CONFIG.proxyUrl;
+      if (cfg.classCode) headers['X-Class-Code'] = cfg.classCode;
+    } else {
+      url = API + encodeURIComponent(cfg.model) + ':streamGenerateContent?alt=sse';
+      headers['x-goog-api-key'] = cfg.conn === 'builtin' ? TUTOR_CONFIG.apiKey : cfg.apiKey;
+      delete body.model;
+    }
+    ctrl = new AbortController();
+    let res;
+    try {
+      res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: ctrl.signal });
+    } catch (e) {
+      if (e.name === 'AbortError') throw e;
+      throw new Error('NETWORK');
+    }
+    if (!res.ok) {
+      let msg = '';
+      try { const j = await res.json(); msg = (j.error && (j.error.message || j.error)) || j.message || ''; } catch (e) {}
+      const err = new Error(String(msg || res.statusText)); err.status = res.status; throw err;
+    }
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = '', got = false, finish = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+        if (!line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if (!data || data === '[DONE]') continue;
+        let j; try { j = JSON.parse(data); } catch (e) { continue; }
+        if (j.error) { const err = new Error(j.error.message || 'Error'); err.status = j.error.code; throw err; }
+        const c = j.candidates && j.candidates[0];
+        if (c && c.content && c.content.parts) for (const p of c.content.parts) if (p.text && !p.thought) { got = true; onText(p.text); }
+        if (c && c.finishReason) finish = c.finishReason;
+        if (j.promptFeedback && j.promptFeedback.blockReason) finish = 'BLOCKED';
+      }
+    }
+    if (!got) {
+      const err = new Error(finish === 'SAFETY' || finish === 'BLOCKED' ? 'BLOCKED' : 'EMPTY'); throw err;
+    }
+    return finish;
+  }
+
+  function errorText(e) {
+    if (e.message === 'NETWORK') return cfg.conn === 'proxy'
+      ? "I couldn't reach the class tutor server. Check your internet connection, or ask your instructor whether the server is running."
+      : "I couldn't reach Gemini. Check your internet connection. If you opened this page inside a preview that blocks outside connections, open the hosted or downloaded version instead.";
+    if (e.message === 'BLOCKED') return 'Gemini declined to answer that message. Try rephrasing it.';
+    if (e.message === 'EMPTY') return 'Gemini returned an empty answer. Please try again.';
+    const s = e.status;
+    if (s === 401 && cfg.conn === 'proxy') return 'The class code is missing or wrong. Open Settings and enter the code your instructor gave you.';
+    if (s === 400 && /api key/i.test(e.message)) return cfg.conn === 'builtin' ? 'Gemini rejected the built-in class key. Let your instructor know, or use your own key in Settings.' : 'Gemini rejected the API key. Open Settings and check it.';
+    if (s === 400 || s === 404) return `Gemini returned an error: ${e.message}. If it mentions the model, choose a different model in Settings.`;
+    if (s === 403) return cfg.conn === 'proxy' ? 'The tutor server refused this page. Ask your instructor to add this site to its allowed origins.' : `Access denied by Gemini: ${e.message}`;
+    if (s === 429) return 'Too many requests right now (rate limit or quota). Wait a minute and try again.';
+    if (s >= 500) return 'Gemini is having trouble right now. Try again in a moment.';
+    return `Something went wrong: ${e.message}`;
+  }
+
+  // ---------------------------------------------------------------- rendering
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const TEX = { theta: 'θ', Theta: 'Θ', Delta: 'Δ', delta: 'δ', partial: '∂', cdot: '·', times: '×', approx: '≈', le: '≤', leq: '≤', ge: '≥', geq: '≥', alpha: 'α', beta: 'β', psi: 'ψ', rho: 'ρ', gamma: 'γ', mu: 'μ', nabla: '∇', infty: '∞', rightarrow: '→', to: '→', pm: '±', sim: '∼', propto: '∝', circ: '°' };
+  function tex(s) {
+    return s.replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, '($1)/($2)').replace(/\\text\{([^{}]*)\}/g, '$1').replace(/\\mathrm\{([^{}]*)\}/g, '$1')
+      .replace(/\\([A-Za-z]+)/g, (m, w) => TEX[w] || w).replace(/\\,|\\;|\\!/g, ' ')
+      .replace(/_\{([^{}]*)\}/g, '<sub>$1</sub>').replace(/\^\{([^{}]*)\}/g, '<sup>$1</sup>')
+      .replace(/_([A-Za-z0-9])/g, '<sub>$1</sub>').replace(/\^([A-Za-z0-9.-]+)/g, '<sup>$1</sup>');
+  }
+  function inline(s) {
+    const codes = [];
+    s = s.replace(/`([^`]+)`/g, (m, c) => { codes.push(c); return '\u0000' + (codes.length - 1) + '\u0000'; });
+    s = esc(s);
+    s = s.replace(/\$\$?([^$]+)\$\$?/g, (m, c) => tex(c));
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<i>$2</i>');
+    s = s.replace(/\u0000(\d+)\u0000/g, (m, i) => `<code>${esc(codes[+i])}</code>`);
+    return s;
+  }
+  function md(text) {
+    const lines = text.replace(/\r/g, '').split('\n');
+    let html = '', list = null, para = [], code = null;
+    const flushP = () => { if (para.length) { html += `<p>${inline(para.join(' '))}</p>`; para = []; } };
+    const flushL = () => { if (list) { html += `<${list.t}>${list.items.map(x => `<li>${inline(x)}</li>`).join('')}</${list.t}>`; list = null; } };
+    for (const raw of lines) {
+      if (code !== null) { if (/^```/.test(raw.trim())) { html += `<pre><code>${esc(code.join('\n'))}</code></pre>`; code = null; } else code.push(raw); continue; }
+      const line = raw.trimEnd();
+      if (/^```/.test(line.trim())) { flushP(); flushL(); code = []; continue; }
+      let m;
+      if (!line.trim()) { flushP(); flushL(); continue; }
+      if ((m = line.match(/^#{1,6}\s+(.*)/))) { flushP(); flushL(); html += `<p class="tt-h">${inline(m[1])}</p>`; continue; }
+      if ((m = line.match(/^\s*[-*•]\s+(.*)/))) { flushP(); if (!list || list.t !== 'ul') { flushL(); list = { t: 'ul', items: [] }; } list.items.push(m[1]); continue; }
+      if ((m = line.match(/^\s*\d+[.)]\s+(.*)/))) { flushP(); if (!list || list.t !== 'ol') { flushL(); list = { t: 'ol', items: [] }; } list.items.push(m[1]); continue; }
+      if (list && /^\s{2,}\S/.test(raw)) { list.items[list.items.length - 1] += ' ' + line.trim(); continue; }
+      flushL(); para.push(line.trim());
+    }
+    if (code !== null) html += `<pre><code>${esc(code.join('\n'))}</code></pre>`;
+    flushP(); flushL();
+    return html;
+  }
+
+  // ---------------------------------------------------------------- UI
+  const btn = document.createElement('button');
+  btn.className = 'tutor-btn'; btn.id = 'tutorBtn'; btn.type = 'button';
+  btn.setAttribute('aria-controls', 'tutor'); btn.setAttribute('aria-expanded', 'false');
+  btn.textContent = 'Ask tutor';
+  const learnBtn = $('learnBtn');
+  learnBtn.parentNode.insertBefore(btn, learnBtn.nextSibling);
+
+  const panel = document.createElement('section');
+  panel.className = 'tutor'; panel.id = 'tutor'; panel.hidden = true;
+  panel.setAttribute('aria-label', 'SoilFlow Tutor');
+  document.body.appendChild(panel);
+
+  function setOpen(o) {
+    cfg.open = o; saveCfg();
+    panel.hidden = !o;
+    btn.setAttribute('aria-expanded', o ? 'true' : 'false');
+    document.body.classList.toggle('tutoring', o);
+    if (o) { render(); const ta = $('ttInput'); if (ta) ta.focus(); }
+  }
+  btn.addEventListener('click', () => setOpen(!cfg.open));
+  const ready = () => cfg.conn === 'proxy' ? !!TUTOR_CONFIG.proxyUrl : cfg.conn === 'builtin' ? !!TUTOR_CONFIG.apiKey : !!cfg.apiKey;
+
+  function chips() {
+    const mode = (window.SF && SF.state().mode) || 'darcy';
+    const c = ['Explain what I’m seeing', 'What should I try next?'];
+    const lc = window.SFLearn && SFLearn.context();
+    if (lc) c.unshift('Help me with this step');
+    c.push({ darcy: 'Why does ponding increase drainage?', buck: 'Why is the profile uniform with free drainage?', rich: 'Why does infiltration slow down over time?' }[mode]);
+    return c;
+  }
+
+  function render() {
+    if (view === 'settings' || !ready()) return renderSettings();
+    panel.innerHTML = `
+      <div class="tt-head">
+        <div><h2>SoilFlow Tutor</h2><span class="tt-sub">Gemini · ${cfg.share ? 'sees your simulator' : 'state sharing off'}</span></div>
+        <div class="tt-tools">
+          <button type="button" class="tt-tool" data-act="new" title="Start a new chat">New chat</button>
+          <button type="button" class="tt-tool" data-act="settings">Settings</button>
+          <button type="button" class="tt-x" data-act="close" aria-label="Close tutor">✕</button>
+        </div>
+      </div>
+      <div class="tt-log" id="ttLog" aria-live="polite">
+        <div class="tt-msg model"><p>Hi! I can explain what the simulator is showing, help you reason through the lesson questions, and suggest experiments to try. ${cfg.share ? 'I can see your current settings and results, so ask about them directly.' : ''}</p></div>
+        ${msgs.map(m => `<div class="tt-msg ${m.role}${m.err ? ' err' : ''}">${m.role === 'user' ? `<p>${esc(m.text).replace(/\n/g, '<br>')}</p>` : md(m.text)}</div>`).join('')}
+      </div>
+      <div class="tt-chips">${chips().map(c => `<button type="button" class="tt-chip" data-chip="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+      <form class="tt-form" id="ttForm">
+        <textarea id="ttInput" rows="2" placeholder="Ask about your column, a chart, or a lesson step…" aria-label="Message the tutor"></textarea>
+        <button type="submit" class="btn primary" id="ttSend">${busy ? 'Stop' : 'Send'}</button>
+      </form>
+      <p class="tt-foot">AI answers can be wrong. Check them against the simulator and your notes. Messages${cfg.share ? ' and your simulator state' : ''} are sent to Google's Gemini API.</p>`;
+    scrollLog();
+    $('ttForm').addEventListener('submit', e => { e.preventDefault(); busy ? stop() : send($('ttInput').value); });
+    $('ttInput').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!busy) send(e.target.value); } });
+  }
+
+  function renderSettings() {
+    const hasProxy = !!TUTOR_CONFIG.proxyUrl, hasBuiltin = !!TUTOR_CONFIG.apiKey;
+    const models = TUTOR_CONFIG.models.includes(cfg.model) ? TUTOR_CONFIG.models : TUTOR_CONFIG.models.concat(cfg.model);
+    panel.innerHTML = `
+      <div class="tt-head">
+        <div><h2>Tutor settings</h2><span class="tt-sub">${ready() ? 'Connected settings are saved in this browser' : 'Connect the tutor to get started'}</span></div>
+        <div class="tt-tools">${ready() ? '<button type="button" class="tt-tool" data-act="chat">Back to chat</button>' : ''}<button type="button" class="tt-x" data-act="close" aria-label="Close tutor">✕</button></div>
+      </div>
+      <form class="tt-set" id="ttSet">
+        ${hasProxy || hasBuiltin ? `<fieldset><legend>Connection</legend>
+          ${hasProxy ? `<label class="tt-radio"><input type="radio" name="conn" value="proxy" ${cfg.conn === 'proxy' ? 'checked' : ''}> Class tutor server <small>(set up by your instructor, no key needed)</small></label>` : ''}
+          ${hasBuiltin ? `<label class="tt-radio"><input type="radio" name="conn" value="builtin" ${cfg.conn === 'builtin' ? 'checked' : ''}> Built-in class key <small>(provided by your instructor, no setup needed)</small></label>` : ''}
+          <label class="tt-radio"><input type="radio" name="conn" value="key" ${cfg.conn === 'key' ? 'checked' : ''}> My own Gemini API key</label></fieldset>` : ''}
+        <div class="tt-field" data-for="proxy" ${cfg.conn === 'proxy' ? '' : 'hidden'}>
+          <label for="ttCode">Class code <small>(if your instructor gave you one)</small></label>
+          <input id="ttCode" type="text" autocomplete="off" value="${esc(cfg.classCode)}">
+        </div>
+        <div class="tt-field" data-for="key" ${cfg.conn === 'key' ? '' : 'hidden'}>
+          <label for="ttKey">Gemini API key</label>
+          <input id="ttKey" type="password" autocomplete="off" placeholder="Paste your key" value="${esc(cfg.apiKey)}">
+          <p class="tt-help">Create a free key in Google AI Studio at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>. The key is stored only in this browser and sent only to Google. Don't use this on a shared computer, or press <b>Forget key</b> when you're done.</p>
+        </div>
+        <div class="tt-field" data-for="key builtin" ${cfg.conn === 'key' || cfg.conn === 'builtin' ? '' : 'hidden'}>
+          <label for="ttModel">Model</label>
+          <select id="ttModel">${models.map(m => `<option ${m === cfg.model ? 'selected' : ''}>${esc(m)}</option>`).join('')}<option value="__custom">Other…</option></select>
+          <input id="ttModelCustom" type="text" placeholder="Model ID, e.g. gemini-3.8-flash" hidden>
+        </div>
+        <label class="tt-check"><input type="checkbox" id="ttShare" ${cfg.share ? 'checked' : ''}> Share my simulator settings, results and current lesson step with the tutor</label>
+        <div class="tt-row"><button type="submit" class="btn primary">Save</button>${cfg.apiKey ? '<button type="button" class="btn" data-act="forget">Forget key</button>' : ''}</div>
+        <p class="tt-note" id="ttNote" hidden></p>
+      </form>`;
+    const f = $('ttSet');
+    f.addEventListener('change', e => {
+      if (e.target.name === 'conn') f.querySelectorAll('[data-for]').forEach(x => { x.hidden = !x.dataset.for.split(' ').includes(e.target.value); });
+      if (e.target.id === 'ttModel') $('ttModelCustom').hidden = e.target.value !== '__custom';
+    });
+    f.addEventListener('submit', e => {
+      e.preventDefault();
+      const c = f.querySelector('input[name="conn"]:checked');
+      cfg.conn = c ? c.value : (hasProxy || hasBuiltin ? cfg.conn : 'key');
+      cfg.apiKey = $('ttKey').value.trim();
+      cfg.classCode = $('ttCode').value.trim();
+      const sel = $('ttModel').value;
+      const custom = $('ttModelCustom').value.trim();
+      if (sel === '__custom') { if (custom) cfg.model = custom; } else cfg.model = sel;
+      cfg.share = $('ttShare').checked;
+      saveCfg();
+      if (!ready()) { const n = $('ttNote'); n.hidden = false; n.textContent = 'Paste a Gemini API key to use the tutor, or choose another connection.'; return; }
+      view = 'chat'; render();
+    });
+  }
+
+  function scrollLog() { const l = $('ttLog'); if (l) l.scrollTop = l.scrollHeight; }
+
+  async function send(text) {
+    text = (text || '').trim();
+    if (!text || busy) return;
+    msgs.push({ role: 'user', text });
+    const reply = { role: 'model', text: '' };
+    busy = true; render();
+    const log = $('ttLog');
+    const el = document.createElement('div'); el.className = 'tt-msg model pending'; el.innerHTML = '<p class="tt-typing">Thinking…</p>';
+    log.appendChild(el); scrollLog();
+    let raf = 0;
+    try {
+      await stream(t => {
+        reply.text += t;
+        if (!raf) raf = requestAnimationFrame(() => { raf = 0; el.classList.remove('pending'); el.innerHTML = md(reply.text); scrollLog(); });
+      });
+      msgs.push(reply);
+    } catch (e) {
+      if (e.name === 'AbortError') { if (reply.text) msgs.push({ role: 'model', text: reply.text + '\n\n*(stopped)*' }); }
+      else msgs.push({ role: 'model', text: errorText(e), err: true }); // shown, never sent back to Gemini
+    }
+    busy = false; ctrl = null; saveChat(); render();
+  }
+  function stop() { if (ctrl) ctrl.abort(); }
+
+  panel.addEventListener('click', e => {
+    const t = e.target.closest('button'); if (!t) return;
+    if (t.dataset.chip) { const c = t.dataset.chip; return send(c === 'Help me with this step' ? 'Can you help me get started on the current lesson step? Give me a hint, not the answer.' : c); }
+    switch (t.dataset.act) {
+      case 'close': return setOpen(false);
+      case 'new': if (busy) stop(); msgs = []; saveChat(); return render();
+      case 'settings': view = 'settings'; return render();
+      case 'chat': view = 'chat'; return render();
+      case 'forget': cfg.apiKey = ''; saveCfg(); return render();
+    }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && cfg.open && document.activeElement && panel.contains(document.activeElement)) setOpen(false); });
+
+  window.SFTutor = {
+    hint(prompt) {
+      setOpen(true);
+      if (!ready()) return;
+      send(`I'm working on this question: "${prompt}". Can you give me a hint to get started, without telling me the answer?`);
+    },
+    open: () => setOpen(true)
+  };
+  if (window.SFLearn) SFLearn.rerender();
+  setOpen(!!cfg.open);
+})();
+
+</script>
 </body></html>
